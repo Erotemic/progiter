@@ -18,6 +18,7 @@ before_install:
   - pip install codecov -U
   - pip install xdoctest -U
   - pip install pygments -U
+  - pip install -r requirements.txt
 #  - pip install networkx
 #  - pip install jedi
 #  - pip install delorean
