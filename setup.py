@@ -141,9 +141,6 @@ if __name__ == '__main__':
         description='A single-threaded alternative to tqdm.',
         long_description=parse_description(),
         install_requires=install_requires,
-        # extras_require={
-        #     'all': parse_requirements('optional-requirements.txt')
-        # },
         author_email='erotemic@gmail.com',
         url='https://github.com/Erotemic/progiter',
         license='Apache 2',
