@@ -5,10 +5,24 @@
 
 # ProgIter
 
-A standalone version of the utility currently in [ubelt](https://github.com/Erotemic/ubelt/pull).
+A standalone version of the utility currently in [ubelt](https://github.com/Erotemic/ubelt).
 
 
-# Description
+## Installation
+
+#### From pypi:
+```
+pip install progiter
+```
+
+#### From github:
+```
+pip install git+https://github.com/Erotemic/progiter.git
+```
+
+
+
+## Description
 
 `ProgIter` is a (mostly) drop-in alternative to [`tqdm`](https://pypi.python.org/pypi/tqdm).
 The `tqdm` library may be more appropriate in some cases.
