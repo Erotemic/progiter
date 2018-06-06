@@ -9,6 +9,7 @@ if __name__ == '__main__':
         '--cov-config', '.coveragerc',
         '--cov-report', 'html',
         '--cov-report', 'term',
+        '-s', '-v',
         '--xdoctest',
         '--cov=' + package_name,
     ]
