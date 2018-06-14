@@ -304,6 +304,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.extra = ''
         self.started = False
         self.finished = False
+        self.default_timer = default_timer
         self._reset_internals()
 
     def __call__(self, iterable):
@@ -436,7 +437,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.display_message()
 
         # Time progress was initialized
-        self._start_time = default_timer()
+        self._start_time = self.default_timer()
         # Last time measures were udpated
         self._last_time  = self._start_time
         self._now_idx = self._iter_idx
@@ -501,7 +502,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._last_time  = self._now_time
 
         self._now_idx = self._iter_idx
-        self._now_time = default_timer()
+        self._now_time = self.default_timer()
 
         self._between_time = self._now_time - self._last_time
         self._between_count = self._now_idx - self._last_idx
@@ -566,7 +567,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         if self.show_times:
             msg_body += [
-                    ('rate={rate:{rate_format}} Hz,'),
+                    ('rate={rate:{rate_format}} {rate_unit},'),
                     (' eta={eta},' if self.total else ''),
                     (' total={total},'),  # this is total time
                     (' wall={wall} ' + tzname),
@@ -602,12 +603,25 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 seconds=int(self._est_seconds_left)))
         total = six.text_type(datetime.timedelta(
             seconds=int(self._total_seconds)))
+
+        # TODO: more intelligent and configurable adaptation of the rate unit
+        rate = self._iters_per_second
+        if rate == 0 or rate < 0.001:
+            rate_unit = 'Hz'
+            rate_format = '4.2f'
+        else:
+            rate = 1.0 / rate
+            rate_unit = 's/it'
+            rate_format = '4.2f'
+            # rate_format = 'g'
+
         # similar to tqdm.format_meter
         msg = self._msg_fmtstr.format(
             desc=self.desc,
             iter_idx=self._now_idx,
             rate=self._iters_per_second,
-            rate_format='4.2f' if self._iters_per_second > .001 else 'g',
+            rate_format=rate_format,
+            rate_unit=rate_unit,
             eta=eta, total=total,
             wall=time.strftime('%H:%M'),
             extra=self.extra,

@@ -1,0 +1,7 @@
+Version 0.1.1
+=============
+* Rate switches to seconds / iteration when it is very slow
+
+Version 0.0.1
+=============
+* Initial port from ubelt to standalone module

@@ -413,6 +413,31 @@ def test_tqdm_compatibility():
     assert 'bar baz' not in cap.text.strip()
 
 
+def test_slow_progiter():
+    # nothing to check (that I can think of) run test for coverage
+    # Make a hacked timer to test progiter with
+    import random
+    class HackedTimer(object):
+        """
+        Args:
+            inc (float): number of seconds to ellapse between each call
+        """
+        def __init__(self, inc=1.0, noise=0):
+            self.time = 1000000000.000
+            self.inc = inc
+            self.noise = noise
+        def __call__(self):
+            self.time += abs(self.inc + random.normalvariate(0, self.noise))
+            return self.time
+
+    hacked_timer = HackedTimer(inc=1.0, noise=.1)
+
+    prog = ProgIter(range(20), verbose=3, enabled=True)
+    prog.default_timer = hacked_timer
+    for _ in prog:
+        pass
+
+
 if __name__ == '__main__':
     r"""
     CommandLine:
