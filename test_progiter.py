@@ -414,6 +414,10 @@ def test_tqdm_compatibility():
 
 
 def test_slow_progiter():
+    """
+    CommandLine:
+        python ~/code/progiter/test_progiter.py test_slow_progiter
+    """
     # nothing to check (that I can think of) run test for coverage
     # Make a hacked timer to test progiter with
     import random
@@ -430,18 +434,25 @@ def test_slow_progiter():
             self.time += abs(self.inc + random.normalvariate(0, self.noise))
             return self.time
 
-    hacked_timer = HackedTimer(inc=1.0, noise=.1)
+    hacked_timer = HackedTimer(inc=1000.0, noise=100)
 
-    prog = ProgIter(range(20), verbose=3, enabled=True)
+    prog = ProgIter(range(20), verbose=3, enabled=True, invert_rate=True)
     prog.default_timer = hacked_timer
     for _ in prog:
         pass
 
 
+# if __name__ == '__main__':
+#     r"""
+#     CommandLine:
+#         pytest ubelt/tests/test_progiter.py
+#     """
+#     import pytest
+#     pytest.main([__file__])
 if __name__ == '__main__':
-    r"""
-    CommandLine:
-        pytest ubelt/tests/test_progiter.py
     """
-    import pytest
-    pytest.main([__file__])
+    CommandLine:
+        python ~/code/progiter/test_progiter.py all
+    """
+    import xdoctest
+    xdoctest.doctest_module(__file__)

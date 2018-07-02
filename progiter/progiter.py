@@ -247,7 +247,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     def __init__(self, iterable=None, desc=None, total=None, freq=1,
                  initial=0, eta_window=64, clearline=True, adjust=True,
                  time_thresh=2.0, show_times=True, enabled=True, verbose=None,
-                 stream=None, **kwargs):
+                 invert_rate=False, stream=None, **kwargs):
         """
         Notes:
             See attributes for arg information
@@ -304,6 +304,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.extra = ''
         self.started = False
         self.finished = False
+        self.invert_rate = invert_rate
         self.default_timer = default_timer
         self._reset_internals()
 
@@ -606,20 +607,26 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         # TODO: more intelligent and configurable adaptation of the rate unit
         rate = self._iters_per_second
-        if rate == 0 or rate < 0.001:
-            rate_unit = 'Hz'
-            rate_format = '4.2f'
-        else:
-            rate = 1.0 / rate
+
+        # if self.invert_rate == 'dynamic':
+        # self.invert_rate = rate != 0 and rate < 0.001
+
+        if self.invert_rate:
+            rate = 0 if rate == 0 else 1.0 / rate
             rate_unit = 's/it'
             rate_format = '4.2f'
-            # rate_format = 'g'
+            # import datetime
+            # perhaps choose minutes/hours/days if more appropriate
+            # td = datetime.timedelta(seconds=rate)
+        else:
+            rate_unit = 'Hz'
+            rate_format = '4.2f' if rate > 0.001 else 'g'
 
         # similar to tqdm.format_meter
         msg = self._msg_fmtstr.format(
             desc=self.desc,
             iter_idx=self._now_idx,
-            rate=self._iters_per_second,
+            rate=rate,
             rate_format=rate_format,
             rate_unit=rate_unit,
             eta=eta, total=total,
