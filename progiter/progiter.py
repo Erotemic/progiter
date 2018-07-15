@@ -247,7 +247,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     def __init__(self, iterable=None, desc=None, total=None, freq=1,
                  initial=0, eta_window=64, clearline=True, adjust=True,
                  time_thresh=2.0, show_times=True, enabled=True, verbose=None,
-                 stream=None, **kwargs):
+                 stream=None, chunksize=None, **kwargs):
         """
         Notes:
             See attributes for arg information
@@ -301,6 +301,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.eta_window = eta_window
         self.time_thresh = 1.0
         self.clearline = clearline
+        self.chunksize = chunksize
         self.extra = ''
         self.started = False
         self.finished = False
@@ -553,12 +554,21 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             n_chrs = 4
         else:
             n_chrs = int(floor(log10(float(self.total))) + 1)
-        msg_body = [
-            ('{desc}'),
-            (' {iter_idx:' + str(n_chrs) + 'd}/'),
-            ('?' if length_unknown else six.text_type(self.total)),
-            ('...'),
-        ]
+
+        if self.chunksize and not length_unknown:
+            msg_body = [
+                ('{desc}'),
+                (' {percent:03.2f}% of '),
+                ('?' if length_unknown else six.text_type(self.total)),
+                ('...'),
+            ]
+        else:
+            msg_body = [
+                ('{desc}'),
+                (' {iter_idx:' + str(n_chrs) + 'd}/'),
+                ('?' if length_unknown else six.text_type(self.total)),
+                ('...'),
+            ]
 
         msg_body += [
             ('{extra} '),
@@ -603,15 +613,26 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         total = six.text_type(datetime.timedelta(
             seconds=int(self._total_seconds)))
         # similar to tqdm.format_meter
-        msg = self._msg_fmtstr.format(
-            desc=self.desc,
-            iter_idx=self._now_idx,
-            rate=self._iters_per_second,
-            rate_format='4.2f' if self._iters_per_second > .001 else 'g',
-            eta=eta, total=total,
-            wall=time.strftime('%H:%M'),
-            extra=self.extra,
-        )
+        if self.chunksize and self.total:
+            msg = self._msg_fmtstr.format(
+                desc=self.desc,
+                percent=self._now_idx / self.total * 100,
+                rate=self._iters_per_second * self.chunksize,
+                rate_format='4.2f' if self._iters_per_second * self.chunksize > .001 else 'g',
+                eta=eta, total=total,
+                wall=time.strftime('%H:%M'),
+                extra=self.extra,
+            )
+        else:
+            msg = self._msg_fmtstr.format(
+                desc=self.desc,
+                iter_idx=self._now_idx,
+                rate=self._iters_per_second,
+                rate_format='4.2f' if self._iters_per_second > .001 else 'g',
+                eta=eta, total=total,
+                wall=time.strftime('%H:%M'),
+                extra=self.extra,
+            )
         return msg
 
     def ensure_newline(self):
