@@ -217,6 +217,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         initial (int): starting index offset (defaults to 0)
         stream (file): defaults to sys.stdout
         enabled (bool): if False nothing happens.
+        chunksize (int): indicates that each iteration processes a batch of
+            this size. Iteration rate is displayed in terms of single-items.
         verbose (int): verbosity mode
             0 - no verbosity,
             1 - verbosity with clearline=True and adjust=True
@@ -558,7 +560,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         if self.chunksize and not length_unknown:
             msg_body = [
                 ('{desc}'),
-                (' {percent:03.2f}% of '),
+                (' {percent:03.2f}% of ' + str(self.chunksize) + 'x'),
                 ('?' if length_unknown else six.text_type(self.total)),
                 ('...'),
             ]
