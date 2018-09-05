@@ -1,0 +1,7 @@
+Version: 0.0.3
+--------------
+* Can now inform ProgIter of chunksize to get Hz in items per second instead of chunks per second.
+
+Version: 0.0.1
+--------------
+* Initial version ported from ubelt

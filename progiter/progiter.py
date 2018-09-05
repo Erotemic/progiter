@@ -25,12 +25,12 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import sys
 import time
-import datetime
 import collections
-from math import log10, floor
 import six
-from collections import OrderedDict
 import numbers
+from collections import OrderedDict
+from datetime import timedelta
+from math import log10, floor
 
 __all__ = [
     'ProgIter',
@@ -84,8 +84,10 @@ def _infer_length(iterable):
 
 
 class _TQDMCompat(object):
+    """
+    Base class for ProgIter that implements a restricted TQDM Compatibility API
+    """
 
-    # TQDM Compatibility API
     @classmethod
     def write(cls, s, file=None, end='\n', nolock=False):
         """ simply writes to stdout """
@@ -174,6 +176,11 @@ class _TQDMCompat(object):
 
 
 class _BackwardsCompat(object):
+    """
+    Base class for ProgIter that maintains backwards compatibility with older
+    versions of the ProgIter API.
+    """
+
     # Backwards Compatibility API
     @property
     def length(self):
@@ -189,17 +196,6 @@ class _BackwardsCompat(object):
 class ProgIter(_TQDMCompat, _BackwardsCompat):
     """
     Prints progress as an iterator progresses
-
-    Note:
-        USE `tqdm` INSTEAD.  The main difference between `ProgIter` and `tqdm`
-        is that ProgIter does not use threading where as `tqdm` does.
-        `ProgIter` is simpler than `tqdm` and thus more stable in certain
-        circumstances. However, `tqdm` is recommended for the majority of use
-        cases.
-
-    Note:
-        The API on `ProgIter` will change to become inter-compatible with
-        `tqdm`.
 
     Attributes:
         iterable (iterable): An iterable iterable
@@ -217,22 +213,34 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         initial (int): starting index offset (defaults to 0)
         stream (file): defaults to sys.stdout
         enabled (bool): if False nothing happens.
+        chunksize (int): indicates that each iteration processes a batch of
+            this size. Iteration rate is displayed in terms of single-items.
         verbose (int): verbosity mode
             0 - no verbosity,
             1 - verbosity with clearline=True and adjust=True
             2 - verbosity without clearline=False and adjust=True
             3 - verbosity without clearline=False and adjust=False
 
+    Note:
+        Either use ProgIter in a with statement or call prog.end() at the end
+        of the computation if there is a possibility that the entire iterable
+        may not be exhausted.
+
+    Note:
+        ProgIter is an alternative to `tqdm`.  The main difference between
+        `ProgIter` and `tqdm` is that ProgIter does not use threading where as
+        `tqdm` does.  `ProgIter` is simpler than `tqdm` and thus more stable in
+        certain circumstances. However, `tqdm` is recommended for the majority
+        of use cases.
+
+    Note:
+        The `ProgIter` API will change to become inter-compatible with `tqdm`.
+
     SeeAlso:
         tqdm - https://pypi.python.org/pypi/tqdm
 
     Reference:
         http://datagenetics.com/blog/february12017/index.html
-
-    Notes:
-        Either use ProgIter in a with statement or call prog.end() at the end
-        of the computation if there is a possibility that the entire iterable
-        may not be exhausted.
 
     Example:
         >>> # doctest: +SKIP
@@ -265,6 +273,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             elif verbose >= 3:  # nocover
                 enabled, clearline, adjust = 1, 0, 0
 
+        # Potential new additions to the API
+        self._microseconds = kwargs.pop('microseconds', False)
+
         # --- Accept the tqdm api ---
         if kwargs:
             stream = kwargs.pop('file', stream)
@@ -284,7 +295,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             initial = kwargs.pop('start', initial)
         if kwargs:
             raise ValueError('ProgIter given unknown kwargs {}'.format(kwargs))
-            # ----------------------------
+        # ----------------------------
 
         if stream is None:
             stream = sys.stdout
@@ -305,6 +316,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.extra = ''
         self.started = False
         self.finished = False
+
         self._reset_internals()
 
     def __call__(self, iterable):
@@ -340,7 +352,10 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     def set_extra(self, extra):
         """
         specify a custom info appended to the end of the next message
-        TODO: come up with a better name and rename
+
+
+        TODO:
+            - [ ] extra is a bad name; come up with something better and rename
 
         Example:
             >>> import ubelt as ub
@@ -558,7 +573,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         if self.chunksize and not length_unknown:
             msg_body = [
                 ('{desc}'),
-                (' {percent:03.2f}% of '),
+                (' {percent:03.2f}% of ' + str(self.chunksize) + 'x'),
                 ('?' if length_unknown else six.text_type(self.total)),
                 ('...'),
             ]
@@ -608,10 +623,16 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         if self._est_seconds_left is None:
             eta = '?'
         else:
-            eta = six.text_type(datetime.timedelta(
-                seconds=int(self._est_seconds_left)))
-        total = six.text_type(datetime.timedelta(
-            seconds=int(self._total_seconds)))
+            if self._microseconds:
+                eta = six.text_type(timedelta(seconds=self._est_seconds_left))
+            else:
+                eta = six.text_type(timedelta(seconds=int(self._est_seconds_left)))
+
+        if self._microseconds:
+            total = six.text_type(timedelta(seconds=self._total_seconds))
+        else:
+            total = six.text_type(timedelta(seconds=int(self._total_seconds)))
+
         # similar to tqdm.format_meter
         if self.chunksize and self.total:
             msg = self._msg_fmtstr.format(
