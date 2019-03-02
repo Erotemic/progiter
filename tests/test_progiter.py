@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-pytest ubelt/tests/test_progiter.py
+pytest tests/test_progiter.py
 """
 from six.moves import cStringIO
 from xdoctest.utils import strip_ansi
 from progiter import ProgIter
-import ubelt as ub
 import sys
 
 
@@ -97,6 +96,7 @@ def test_progiter():
           'insignificant')
     print('this is verbosity mode verbose=0')
     sequence = (is_prime(n) for n in range(N0, N))
+    import ubelt as ub
     with ub.Timer('demo0'):
         psequence = ProgIter(sequence, total=total, desc='demo0',
                              enabled=False)
@@ -137,7 +137,7 @@ def test_progiter():
 
 def test_progiter_offset_10():
     """
-    pytest -s  ~/code/ubelt/ubelt/tests/test_progiter.py::test_progiter_offset_10
+    pytest -s  ~/code/progiter/tests/test_progiter.py::test_progiter_offset_10
     """
     # Define a function that takes some time
     file = cStringIO()
@@ -155,7 +155,7 @@ def test_progiter_offset_10():
 
 def test_progiter_offset_0():
     """
-    pytest -s  ~/code/ubelt/ubelt/tests/test_progiter.py::test_progiter_offset_0
+    pytest -s  ~/code/progiter/tests/test_progiter.py::test_progiter_offset_0
     """
     # Define a function that takes some time
     file = cStringIO()
@@ -294,7 +294,7 @@ def test_clearline():
     """
     Make sure a question mark is printed if the total is unknown
 
-    pytest ubelt/tests/test_progiter.py::test_clearline
+    pytest tests/test_progiter.py::test_clearline
     """
     file = cStringIO()
     # Clearline=False version should simply have a newline at the end.
@@ -368,6 +368,7 @@ def test_tqdm_compatibility():
     for _ in prog:
         pass
 
+    import ubelt as ub
     with ub.CaptureStdout() as cap:
         ProgIter.write('foo')
     assert cap.text.strip() == 'foo'
@@ -416,7 +417,7 @@ def test_tqdm_compatibility():
 if __name__ == '__main__':
     r"""
     CommandLine:
-        pytest ubelt/tests/test_progiter.py
+        pytest tests/test_progiter.py
     """
     import pytest
     pytest.main([__file__])

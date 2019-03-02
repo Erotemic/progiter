@@ -8,14 +8,14 @@ A Progress Iterator:
     You can divide the runtime overhead by two as many times as you want.
 
 CommandLine:
-    python -m ubelt.progiter __doc__:0
+    python -m progiter.progiter __doc__:0
 
 Example:
     >>> # SCRIPT
-    >>> import ubelt as ub
+    >>> import progiter
     >>> def is_prime(n):
     ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
-    >>> for n in ub.ProgIter(range(1000000), verbose=1):
+    >>> for n in progiter.ProgIter(range(1000000), verbose=1):
     >>>     # do some work
     >>>     is_prime(n)
 
@@ -246,10 +246,10 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     Example:
         >>> # doctest: +SKIP
-        >>> import ubelt as ub
+        >>> import progiter
         >>> def is_prime(n):
         ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
-        >>> for n in ub.ProgIter(range(100), verbose=1):
+        >>> for n in progiter.ProgIter(range(100), verbose=1):
         >>>     # do some work
         >>>     is_prime(n)
         100/100... rate=... Hz, total=..., wall=... EST
@@ -327,9 +327,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     def __enter__(self):
         """
-        CommandLine:
-            python -m ubelt.progiter ProgIter.__enter__
-
         Example:
             >>> # can be used as a context manager in iter mode
             >>> n = 3
@@ -355,13 +352,12 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         specify a custom info appended to the end of the next message
 
-
         TODO:
             - [ ] extra is a bad name; come up with something better and rename
 
         Example:
-            >>> import ubelt as ub
-            >>> prog = ub.ProgIter(range(100, 300, 100), show_times=False, verbose=3)
+            >>> import progiter
+            >>> prog = progiter.ProgIter(range(100, 300, 100), show_times=False, verbose=3)
             >>> for n in prog:
             >>>     prog.set_extra('processesing num {}'.format(n))
             0/2...
@@ -394,9 +390,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             inc (int): number of steps to increment (defaults to 1)
 
         Example:
-            >>> import ubelt as ub
+            >>> import progiter
             >>> n = 3
-            >>> prog = ub.ProgIter(desc='manual', total=n, verbose=3)
+            >>> prog = progiter.ProgIter(desc='manual', total=n, verbose=3)
             >>> # Need to manually begin and end in this mode
             >>> prog.begin()
             >>> for _ in range(n):
@@ -404,10 +400,10 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> prog.end()
 
         Example:
-            >>> import ubelt as ub
+            >>> import progiter
             >>> n = 3
             >>> # can be used as a context manager in manual mode
-            >>> with ub.ProgIter(desc='manual', total=n, verbose=3) as prog:
+            >>> with progiter.ProgIter(desc='manual', total=n, verbose=3) as prog:
             ...     for _ in range(n):
             ...         prog.step()
         """
@@ -611,9 +607,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         builds a formatted progres message with the current values.
         This contains the special characters needed to clear lines.
 
-        CommandLine:
-            python -m ubelt.progiter ProgIter.format_message
-
         Example:
             >>> self = ProgIter(clearline=False, show_times=False)
             >>> print(repr(self.format_message()))
@@ -668,8 +661,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         Example:
             >>> # Unsafe version may write your message on the wrong line
-            >>> import ubelt as ub
-            >>> prog = ub.ProgIter(range(4), show_times=False, verbose=1)
+            >>> import progiter
+            >>> prog = progiter.ProgIter(range(4), show_times=False, verbose=1)
             >>> for n in prog:
             ...     print('unsafe message')
              0/4...  unsafe message
@@ -680,7 +673,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> # apparently the safe version does this too.
             >>> print('---')
             ---
-            >>> prog = ub.ProgIter(range(4), show_times=False, verbose=1)
+            >>> prog = progiter.ProgIter(range(4), show_times=False, verbose=1)
             >>> for n in prog:
             ...     prog.ensure_newline()
             ...     print('safe message')
@@ -714,3 +707,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     def _write(self, msg):
         """ write to the internal stream """
         self.stream.write(msg)
+
+
+if __name__ == '__main__':
+    import xdoctest as xdoc
+    xdoc.doctest_module()

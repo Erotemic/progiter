@@ -37,6 +37,10 @@ Pypi:
      # Check the url to make sure everything worked
      https://pypi.python.org/pypi?:action=display&name=progiter
 
+Update Requirments:
+    # Requirements are broken down by type in the `requirements` folder, and
+    # `requirments.txt` lists them all. Thus we autogenerate via:
+    cd ~/code/ubelt && cat requirements/*.txt > requirements.txt
 """
 from setuptools import setup
 
@@ -132,15 +136,17 @@ def parse_requirements(fname='requirements.txt'):
 version = parse_version('progiter')  # needs to be a global var for git tags
 
 if __name__ == '__main__':
-    install_requires = parse_requirements('requirements.txt')
-
     setup(
         name='progiter',
         version=version,
         author='Jon Crall',
         description='A single-threaded alternative to tqdm.',
         long_description=parse_description(),
-        install_requires=install_requires,
+        install_requires=parse_requirements('requirements/runtime.txt'),
+        extras_require={
+            'all': parse_requirements('requirements.txt'),
+            'tests': parse_requirements('requirements/tests.txt'),
+        },
         author_email='erotemic@gmail.com',
         url='https://github.com/Erotemic/progiter',
         license='Apache 2',
