@@ -18,8 +18,6 @@ Example:
     >>> for n in progiter.ProgIter(range(1000000), verbose=1):
     >>>     # do some work
     >>>     is_prime(n)
-
-
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -615,6 +613,17 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> self.step()
             >>> print(repr(self.format_message()))
             ' 1/?... \n'
+
+        Example:
+            >>> self = ProgIter(chunksize=10, total=100, clearline=False,
+            >>>                 show_times=False, microseconds=True)
+            >>> # hack, microseconds=True for coverage, needs real test
+            >>> print(repr(self.format_message()))
+            ' 0.00% of 10x100... \n'
+            >>> self.begin()
+            >>> self.update()  # tqdm alternative to step
+            >>> print(repr(self.format_message()))
+            ' 1.00% of 10x100... \n'
         """
         from datetime import timedelta
         if self._est_seconds_left is None:

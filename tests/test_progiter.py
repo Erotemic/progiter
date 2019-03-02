@@ -4,6 +4,7 @@ pytest tests/test_progiter.py
 """
 from six.moves import cStringIO
 from xdoctest.utils import strip_ansi
+from xdoctest.utils import CaptureStdout
 from progiter import ProgIter
 import sys
 
@@ -96,8 +97,8 @@ def test_progiter():
           'insignificant')
     print('this is verbosity mode verbose=0')
     sequence = (is_prime(n) for n in range(N0, N))
-    import ubelt as ub
-    with ub.Timer('demo0'):
+    # with ub.Timer('demo0'):
+    if True:
         psequence = ProgIter(sequence, total=total, desc='demo0',
                              enabled=False)
         list(psequence)
@@ -106,7 +107,8 @@ def test_progiter():
     print('Demo #1: progress is shown by default in the same line')
     print('this is verbosity mode verbose=1')
     sequence = (is_prime(n) for n in range(N0, N))
-    with ub.Timer('demo1'):
+    # with ub.Timer('demo1'):
+    if True:
         psequence = ProgIter(sequence, total=total, desc='demo1')
         list(psequence)
 
@@ -117,7 +119,8 @@ def test_progiter():
     print('Progress is only printed as needed')
     print('Notice the adjustment behavior of the print frequency')
     print('this is verbosity mode verbose=2')
-    with ub.Timer('demo2'):
+    # with ub.Timer('demo2'):
+    if True:
         sequence = (is_prime(n) for n in range(N0, N))
         psequence = ProgIter(sequence, total=total, clearline=False,
                              desc='demo2')
@@ -129,7 +132,8 @@ def test_progiter():
     print('Demo #3: Adjustments can be turned off to give constant feedback')
     print('this is verbosity mode verbose=3')
     sequence = (is_prime(n) for n in range(N0, N))
-    with ub.Timer('demo3'):
+    # with ub.Timer('demo3'):
+    if True:
         psequence = ProgIter(sequence, total=total, adjust=False,
                              clearline=False, freq=100, desc='demo3')
         list(psequence)
@@ -368,12 +372,11 @@ def test_tqdm_compatibility():
     for _ in prog:
         pass
 
-    import ubelt as ub
-    with ub.CaptureStdout() as cap:
+    with CaptureStdout() as cap:
         ProgIter.write('foo')
     assert cap.text.strip() == 'foo'
 
-    with ub.CaptureStdout() as cap:
+    with CaptureStdout() as cap:
         prog = ProgIter(show_times=False)
         prog.set_description('new desc', refresh=False)
         prog.begin()
@@ -382,14 +385,14 @@ def test_tqdm_compatibility():
     assert prog.label == 'new desc'
     assert 'new desc' in cap.text.strip()
 
-    with ub.CaptureStdout() as cap:
+    with CaptureStdout() as cap:
         prog = ProgIter(show_times=False)
         prog.set_description('new desc', refresh=True)
         prog.close()
     assert prog.label == 'new desc'
     assert 'new desc' in cap.text.strip()
 
-    with ub.CaptureStdout() as cap:
+    with CaptureStdout() as cap:
         prog = ProgIter(show_times=False)
         prog.set_description_str('new desc')
         prog.begin()
@@ -398,7 +401,7 @@ def test_tqdm_compatibility():
     assert prog.label == 'new desc'
     assert 'new desc' in cap.text.strip()
 
-    with ub.CaptureStdout() as cap:
+    with CaptureStdout() as cap:
         prog = ProgIter(show_times=False)
         prog.set_postfix({'foo': 'bar'}, baz='biz', x=object(), y=2)
         prog.begin()
@@ -408,7 +411,7 @@ def test_tqdm_compatibility():
     assert 'y=2' in cap.text.strip()
     assert 'x=<object' in cap.text.strip()
 
-    with ub.CaptureStdout() as cap:
+    with CaptureStdout() as cap:
         prog = ProgIter(show_times=False)
         prog.set_postfix_str('bar baz', refresh=False)
     assert 'bar baz' not in cap.text.strip()

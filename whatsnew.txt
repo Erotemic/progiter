@@ -1,3 +1,10 @@
+Version: 0.1.0
+--------------
+* Reorganized runtime versus test dependencies
+* Reduced import time
+* Cleanup some docs
+ 
+
 Version: 0.0.3
 --------------
 * Can now inform ProgIter of chunksize to get Hz in items per second instead of chunks per second.
