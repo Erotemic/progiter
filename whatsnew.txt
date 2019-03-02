@@ -1,5 +1,6 @@
 Version: 0.1.0
 --------------
+* Add CircleCI tests
 * Reorganized runtime versus test dependencies
 * Reduced import time
 * Cleanup some docs
