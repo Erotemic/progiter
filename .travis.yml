@@ -13,7 +13,7 @@ python:
   - "3.6"
 before_install:
   - pip install pip -U
-  - pip install -r requirements/test.txt
+  - pip install -r requirements/tests.txt
   - pip install -r requirements/runtime.txt
 install:
   - travis_retry pip install -e .
