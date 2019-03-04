@@ -40,7 +40,7 @@ Pypi:
 Update Requirments:
     # Requirements are broken down by type in the `requirements` folder, and
     # `requirments.txt` lists them all. Thus we autogenerate via:
-    cd ~/code/progiter && cat requirements/*.txt > requirements.txt
+    cat requirements/*.txt > requirements.txt
 """
 from setuptools import setup
 
