@@ -8,37 +8,35 @@ A Progress Iterator:
     You can divide the runtime overhead by two as many times as you want.
 
 CommandLine:
-    python -m ubelt.progiter __doc__:0
+    python -m progiter.progiter __doc__:0
 
 Example:
     >>> # SCRIPT
-    >>> import ubelt as ub
+    >>> import progiter
     >>> def is_prime(n):
     ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
-    >>> for n in ub.ProgIter(range(1000000), verbose=1):
+    >>> for n in progiter.ProgIter(range(1000000), verbose=1):
     >>>     # do some work
     >>>     is_prime(n)
-
-
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import sys
 import time
 import collections
-import six
-import numbers
-from collections import OrderedDict
-from datetime import timedelta
-from math import log10, floor
+
 
 __all__ = [
     'ProgIter',
 ]
 
 if sys.version_info.major == 2:  # nocover
+    text_type = unicode
+    string_types = basestring,
     default_timer = time.clock if sys.platform.startswith('win32') else time.time
 else:
+    text_type = str
+    string_types = str,
     default_timer = time.perf_counter
 
 CLEAR_BEFORE = '\r'
@@ -151,16 +149,18 @@ class _TQDMCompat(object):
     def set_postfix(self, ordered_dict=None, refresh=True, **kwargs):
         """ tqdm api compatibility. calls set_extra """
         # Sort in alphabetical order to be more deterministic
-        postfix = OrderedDict([] if ordered_dict is None else ordered_dict)
+        postfix = collections.OrderedDict(
+            [] if ordered_dict is None else ordered_dict)
         for key in sorted(kwargs.keys()):
             postfix[key] = kwargs[key]
         # Preprocess stats according to datatype
         for key in postfix.keys():
+            import numbers
             # Number: limit the length of the string
             if isinstance(postfix[key], numbers.Number):
                 postfix[key] = '{0:2.3g}'.format(postfix[key])
             # Else for any other type, try to get the string conversion
-            elif not isinstance(postfix[key], six.string_types):
+            elif not isinstance(postfix[key], string_types):
                 postfix[key] = str(postfix[key])
             # Else if it's a string, don't need to preprocess anything
         # Stitch together to get the final postfix
@@ -244,10 +244,10 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     Example:
         >>> # doctest: +SKIP
-        >>> import ubelt as ub
+        >>> import progiter
         >>> def is_prime(n):
         ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
-        >>> for n in ub.ProgIter(range(100), verbose=1):
+        >>> for n in progiter.ProgIter(range(100), verbose=1):
         >>>     # do some work
         >>>     is_prime(n)
         100/100... rate=... Hz, total=..., wall=... EST
@@ -325,9 +325,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     def __enter__(self):
         """
-        CommandLine:
-            python -m ubelt.progiter ProgIter.__enter__
-
         Example:
             >>> # can be used as a context manager in iter mode
             >>> n = 3
@@ -353,13 +350,12 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         specify a custom info appended to the end of the next message
 
-
         TODO:
             - [ ] extra is a bad name; come up with something better and rename
 
         Example:
-            >>> import ubelt as ub
-            >>> prog = ub.ProgIter(range(100, 300, 100), show_times=False, verbose=3)
+            >>> import progiter
+            >>> prog = progiter.ProgIter(range(100, 300, 100), show_times=False, verbose=3)
             >>> for n in prog:
             >>>     prog.set_extra('processesing num {}'.format(n))
             0/2...
@@ -392,9 +388,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             inc (int): number of steps to increment (defaults to 1)
 
         Example:
-            >>> import ubelt as ub
+            >>> import progiter
             >>> n = 3
-            >>> prog = ub.ProgIter(desc='manual', total=n, verbose=3)
+            >>> prog = progiter.ProgIter(desc='manual', total=n, verbose=3)
             >>> # Need to manually begin and end in this mode
             >>> prog.begin()
             >>> for _ in range(n):
@@ -402,10 +398,10 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> prog.end()
 
         Example:
-            >>> import ubelt as ub
+            >>> import progiter
             >>> n = 3
             >>> # can be used as a context manager in manual mode
-            >>> with ub.ProgIter(desc='manual', total=n, verbose=3) as prog:
+            >>> with progiter.ProgIter(desc='manual', total=n, verbose=3) as prog:
             ...     for _ in range(n):
             ...         prog.step()
         """
@@ -563,6 +559,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> print(self._build_message_template().strip())
             {desc} {iter_idx:4d}/?...{extra}
         """
+        from math import log10, floor
         tzname = time.tzname[0]
         length_unknown = self.total is None or self.total <= 0
         if length_unknown:
@@ -574,14 +571,14 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             msg_body = [
                 ('{desc}'),
                 (' {percent:03.2f}% of ' + str(self.chunksize) + 'x'),
-                ('?' if length_unknown else six.text_type(self.total)),
+                ('?' if length_unknown else text_type(self.total)),
                 ('...'),
             ]
         else:
             msg_body = [
                 ('{desc}'),
                 (' {iter_idx:' + str(n_chrs) + 'd}/'),
-                ('?' if length_unknown else six.text_type(self.total)),
+                ('?' if length_unknown else text_type(self.total)),
                 ('...'),
             ]
 
@@ -608,9 +605,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         builds a formatted progres message with the current values.
         This contains the special characters needed to clear lines.
 
-        CommandLine:
-            python -m ubelt.progiter ProgIter.format_message
-
         Example:
             >>> self = ProgIter(clearline=False, show_times=False)
             >>> print(repr(self.format_message()))
@@ -619,19 +613,31 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> self.step()
             >>> print(repr(self.format_message()))
             ' 1/?... \n'
+
+        Example:
+            >>> self = ProgIter(chunksize=10, total=100, clearline=False,
+            >>>                 show_times=False, microseconds=True)
+            >>> # hack, microseconds=True for coverage, needs real test
+            >>> print(repr(self.format_message()))
+            ' 0.00% of 10x100... \n'
+            >>> self.begin()
+            >>> self.update()  # tqdm alternative to step
+            >>> print(repr(self.format_message()))
+            ' 1.00% of 10x100... \n'
         """
+        from datetime import timedelta
         if self._est_seconds_left is None:
             eta = '?'
         else:
             if self._microseconds:
-                eta = six.text_type(timedelta(seconds=self._est_seconds_left))
+                eta = text_type(timedelta(seconds=self._est_seconds_left))
             else:
-                eta = six.text_type(timedelta(seconds=int(self._est_seconds_left)))
+                eta = text_type(timedelta(seconds=int(self._est_seconds_left)))
 
         if self._microseconds:
-            total = six.text_type(timedelta(seconds=self._total_seconds))
+            total = text_type(timedelta(seconds=self._total_seconds))
         else:
-            total = six.text_type(timedelta(seconds=int(self._total_seconds)))
+            total = text_type(timedelta(seconds=int(self._total_seconds)))
 
         # similar to tqdm.format_meter
         if self.chunksize and self.total:
@@ -664,8 +670,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         Example:
             >>> # Unsafe version may write your message on the wrong line
-            >>> import ubelt as ub
-            >>> prog = ub.ProgIter(range(4), show_times=False, verbose=1)
+            >>> import progiter
+            >>> prog = progiter.ProgIter(range(4), show_times=False, verbose=1)
             >>> for n in prog:
             ...     print('unsafe message')
              0/4...  unsafe message
@@ -676,7 +682,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> # apparently the safe version does this too.
             >>> print('---')
             ---
-            >>> prog = ub.ProgIter(range(4), show_times=False, verbose=1)
+            >>> prog = progiter.ProgIter(range(4), show_times=False, verbose=1)
             >>> for n in prog:
             ...     prog.ensure_newline()
             ...     print('safe message')
@@ -713,10 +719,5 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
 
 if __name__ == '__main__':
-    r"""
-    CommandLine:
-        python -m ubelt.progiter
-        python -m ubelt.progiter all
-    """
     import xdoctest as xdoc
     xdoc.doctest_module()
