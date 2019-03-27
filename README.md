@@ -28,6 +28,11 @@ pip install git+https://github.com/Erotemic/progiter.git
 The `tqdm` library may be more appropriate in some cases.
 *The advantage of `ProgIter` is that it does not use any python threading*, 
 and therefore can be safer with code that makes heavy use of multiprocessing.
+[The reason](https://pybay.com/site_media/slides/raymond2017-keynote/combo.html)
+for this is that threading before forking may cause locks to be duplicated
+across processes, which may lead to deadlocks.
+
+
 ```python
 >>> from progiter import ProgIter
 >>> def is_prime(n):
