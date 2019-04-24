@@ -6,7 +6,7 @@ Its basic usage is simple and intuitive. Just wrap a python iterable.
 
 Example:
     >>> from progiter import ProgIter
-    >>> for item in ProgIter(range(1000000000)):
+    >>> for item in ProgIter(range(1000)):
     >>>     item  # Do Work
 """
 from __future__ import unicode_literals
