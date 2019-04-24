@@ -7,6 +7,10 @@ ProgIter documentation
 .. automodule:: progiter.__init__
    :show-inheritance:
 
+
+.. automodule:: progiter.progiter
+   :show-inheritance:
+
 .. commented out
 .. :members:
 .. :undoc-members:
