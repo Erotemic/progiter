@@ -54,17 +54,17 @@ deadlocks.
 .. _The reason: https://pybay.com/site_media/slides/raymond2017-keynote/combo.html
 
 
-.. |Travis| image:: https://img.shields.io/travis/Erotemic/progitetr/master.svg?label=Travis%20CI
-   :target: https://travis-ci.org/Erotemic/progitetr?branch=master
-.. |Codecov| image:: https://codecov.io/github/Erotemic/progitetr/badge.svg?branch=master&service=github
-   :target: https://codecov.io/github/Erotemic/progitetr?branch=master
-.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/github/Erotemic/progitetr?branch=master&svg=True
-   :target: https://ci.appveyor.com/project/Erotemic/progitetr/branch/master
-.. |Pypi| image:: https://img.shields.io/pypi/v/progitetr.svg
-   :target: https://pypi.python.org/pypi/progitetr
-.. |Downloads| image:: https://img.shields.io/pypi/dm/progitetr.svg
-   :target: https://pypi.python.org/pypi/progitetr
-.. |CircleCI| image:: https://circleci.com/gh/Erotemic/progitetr.svg?style=svg
-    :target: https://circleci.com/gh/Erotemic/progitetr
-.. |ReadTheDocs| image:: https://readthedocs.org/projects/progitetr/badge/?version=latest
-    :target: http://progitetr.readthedocs.io/en/latest/
+.. |Travis| image:: https://img.shields.io/travis/Erotemic/progiter/master.svg?label=Travis%20CI
+   :target: https://travis-ci.org/Erotemic/progiter?branch=master
+.. |Codecov| image:: https://codecov.io/github/Erotemic/progiter/badge.svg?branch=master&service=github
+   :target: https://codecov.io/github/Erotemic/progiter?branch=master
+.. |Appveyor| image:: https://ci.appveyor.com/api/projects/status/github/Erotemic/progiter?branch=master&svg=True
+   :target: https://ci.appveyor.com/project/Erotemic/progiter/branch/master
+.. |Pypi| image:: https://img.shields.io/pypi/v/progiter.svg
+   :target: https://pypi.python.org/pypi/progiter
+.. |Downloads| image:: https://img.shields.io/pypi/dm/progiter.svg
+   :target: https://pypi.python.org/pypi/progiter
+.. |CircleCI| image:: https://circleci.com/gh/Erotemic/progiter.svg?style=svg
+    :target: https://circleci.com/gh/Erotemic/progiter
+.. |ReadTheDocs| image:: https://readthedocs.org/projects/progiter/badge/?version=latest
+    :target: http://progiter.readthedocs.io/en/latest/
