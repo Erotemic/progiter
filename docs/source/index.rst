@@ -1,14 +1,7 @@
 :github_url: https://github.com/Erotemic/ubelt
 
-reponice documentation
+ProgIter documentation
 ======================
-
-REPO_NICE=progiter
-
-You have to populate the index page yourself 
-
-TODO: have someone who understands this write docs
-
 
 .. The __init__ files contains the top-level documentation overview
 .. automodule:: progiter.__init__
