@@ -63,7 +63,7 @@ deadlocks.
 .. |Pypi| image:: https://img.shields.io/pypi/v/progiter.svg
    :target: https://pypi.python.org/pypi/progiter
 .. |Downloads| image:: https://img.shields.io/pypi/dm/progiter.svg
-   :target: https://pypi.python.org/pypi/progiter
+   :target: https://pypistats.org/packages/progiter
 .. |CircleCI| image:: https://circleci.com/gh/Erotemic/progiter.svg?style=svg
     :target: https://circleci.com/gh/Erotemic/progiter
 .. |ReadTheDocs| image:: https://readthedocs.org/projects/progiter/badge/?version=latest
