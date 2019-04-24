@@ -12,9 +12,12 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+# HACK: muck with paths until we can import ourself
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../..'))
 
 
 # -- Project information -----------------------------------------------------
@@ -24,7 +27,7 @@ copyright = '2019, Jon Crall'
 author = 'Jon Crall'
 
 # The short X.Y version
-import progiter
+import progiter  # NOQA
 version = '.'.join(progiter.__version__.split('.')[0:2])
 # The full version, including alpha/beta/rc tags
 release = ''
