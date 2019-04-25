@@ -3,37 +3,40 @@
 ProgIter
 ========
 
-A standalone version of the utility currently in `ubelt`_.
+ProgIter lets you measure and print the progress of an iterative process. This
+can be done either via an iterable interface or using the manual api. Using the
+iterable inferface is most common.
 
-Docs are being written at https://progiter.readthedocs.io/en/latest/
+ProgIter was originally developed independantly of ``tqdm``, but the newer
+versions of this library have been designed to be compatible with tqdm-API.
+``ProgIter`` is now a (mostly) drop-in alternative to tqdm_. The ``tqdm``
+library may be more appropriate in some cases. *The main advantage of ``ProgIter``
+is that it does not use any python threading*, and therefore can be safer with
+code that makes heavy use of multiprocessing. `The reason`_ for this is that
+threading before forking may cause locks to be duplicated across processes,
+which may lead to deadlocks.
 
-Installation
-------------
+ProgIter is simpler than tqdm, which may be desirable for some applications.
+However, this also means ProgIter is not as extensible as tqdm.
+If you want a pretty bar or need something fancy, use tqdm;
+if you want useful information  about your iteration by
+default, use progiter. 
 
-From pypi:
-^^^^^^^^^^
+Package level documentation can be found at: https://progiter.readthedocs.io/en/latest/
 
-::
+Example
+-------
 
-   pip install progiter
+The basic usage of ProgIter is simple and intuitive. Just wrap a python
+iterable.  The following example wraps a ``range`` iterable and prints reported
+progress to stdout as the iterable is consumed. The ``ProgIter`` object accepts
+various keyword arguments to modify the details of how progress is measured and
+reported. See API documentation of the ``ProgIter`` classs here:
+https://progiter.readthedocs.io/en/latest/progiter.progiter.html#progiter.progiter.ProgIter
 
-From github:
-^^^^^^^^^^^^
-
-::
-
-   pip install git+https://github.com/Erotemic/progiter.git
-
-Description
------------
-
-``ProgIter`` is a (mostly) drop-in alternative to tqdm_. The
-``tqdm`` library may be more appropriate in some cases. *The advantage
-of ``ProgIter`` is that it does not use any python threading*, and
-therefore can be safer with code that makes heavy use of
-multiprocessing. `The reason`_ for this is that threading before forking
-may cause locks to be duplicated across processes, which may lead to
-deadlocks.
+Note that by default ProgIter reports information about iteration-rate,
+fraction-complete, estimated time remaining, time taken so far, and the current
+wall time.
 
 .. code:: python
 
@@ -48,6 +51,27 @@ deadlocks.
      257/1000... rate=177204.69 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST 
      642/1000... rate=94099.22 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST 
     1000/1000... rate=71886.74 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST 
+
+Installation
+------------
+
+ProgIter is included in distributions of `ubelt`_. If you have ubelt, you also
+have progiter. However, progiter can be explicitly installed without ubelt
+using `pip`.
+
+From pypi:
+^^^^^^^^^^
+
+::
+
+   pip install progiter
+
+From github:
+^^^^^^^^^^^^
+
+::
+
+   pip install git+https://github.com/Erotemic/progiter.git
 
 .. _ubelt: https://github.com/Erotemic/ubelt
 .. _tqdm: https://pypi.python.org/pypi/tqdm

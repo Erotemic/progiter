@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-A Progress Iterator:
+A Progress Iterator
 
-    The API is compatible with TQDM!
+The API is compatible with TQDM.
 
-    We have our own ways of running too!
-    You can divide the runtime overhead by two as many times as you want.
+We have our own ways of running too!
+You can divide the runtime overhead by two as many times as you want.
 
 CommandLine:
     python -m progiter.progiter __doc__:0
@@ -197,44 +197,53 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     """
     Prints progress as an iterator progresses
 
+    ProgIter is an alternative to `tqdm`. ProgIter implements much of the
+    tqdm-API.  The main difference between `ProgIter` and `tqdm` is that
+    ProgIter does not use threading where as `tqdm` does.
+
     Attributes:
         iterable (iterable): An iterable iterable
-        desc (str): description label to show with progress
-        total (int): Maximum length of the process
-            (estimated from iterable if not specified)
-        freq (int): How many iterations to wait between messages.
-        adjust (bool): if True freq is adjusted based on time_thresh
-        eta_window (int): number of previous measurements to use in eta calculation
-        clearline (bool): if true messages are printed on the same line
-        adjust (bool): if True `freq` is adjusted based on time_thresh
-        time_thresh (float): desired amount of time to wait between messages if
+
+        desc (str): description label to sho w with progress
+
+        total (int): Maximum length of the process. If not specified, we
+            estimate it from the iterable, if possible.
+
+        freq (int, default=1): How many iterations to wait between messages.
+
+        adjust (bool, default=True): if True freq is adjusted based on time_thresh
+
+        eta_window (int, default=64): number of previous measurements to use in eta calculation
+
+        clearline (bool, default=True): if True messages are printed on the same line
+
+        adjust (bool, default=True): if True `freq` is adjusted based on time_thresh
+
+        time_thresh (float, default=2.0): desired amount of time to wait between messages if
             adjust is True otherwise does nothing
-        show_times (bool): shows rate, eta, and wall (defaults to True)
-        initial (int): starting index offset (defaults to 0)
-        stream (file): defaults to sys.stdout
-        enabled (bool): if False nothing happens.
-        chunksize (int): indicates that each iteration processes a batch of
+
+        show_times (bool, default=True): shows rate, eta, and wall (defaults to True)
+
+        initial (int, default=0): starting index offset (defaults to 0)
+
+        stream (file, default=sys.stdout): stream where progress information is written to
+
+        enabled (bool, default=True): if False nothing happens.
+
+        chunksize (int, optional): indicates that each iteration processes a batch of
             this size. Iteration rate is displayed in terms of single-items.
-        verbose (int): verbosity mode
-            0 - no verbosity,
-            1 - verbosity with clearline=True and adjust=True
-            2 - verbosity without clearline=False and adjust=True
-            3 - verbosity without clearline=False and adjust=False
+
+        verbose (int): verbosity mode, which controls clearline, adjust, and
+            enabled. The following maps the value of `verbose` to its effect.
+            0: enabled=False,
+            1: enabled=True with clearline=True and adjust=True,
+            2: enabled=True with clearline=False and adjust=True,
+            3: enabled+True with clearline=False and adjust=False
 
     Note:
         Either use ProgIter in a with statement or call prog.end() at the end
         of the computation if there is a possibility that the entire iterable
         may not be exhausted.
-
-    Note:
-        ProgIter is an alternative to `tqdm`.  The main difference between
-        `ProgIter` and `tqdm` is that ProgIter does not use threading where as
-        `tqdm` does.  `ProgIter` is simpler than `tqdm` and thus more stable in
-        certain circumstances. However, `tqdm` is recommended for the majority
-        of use cases.
-
-    Note:
-        The `ProgIter` API will change to become inter-compatible with `tqdm`.
 
     SeeAlso:
         tqdm - https://pypi.python.org/pypi/tqdm
@@ -383,9 +392,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         Manually step progress update, either directly or by an increment.
 
         Args:
-            idx (int): current step index (default None)
-                if specified, takes precidence over `inc`
-            inc (int): number of steps to increment (defaults to 1)
+            inc (int, default=1): number of steps to increment
 
         Example:
             >>> import progiter
@@ -466,6 +473,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.finished = False
 
     def end(self):
+        """
+        Stop measuring progress and print a final mesage if necssary.
+        """
         if not self.enabled or self.finished:
             return
         # Write the final progress line if it was not written in the loop
