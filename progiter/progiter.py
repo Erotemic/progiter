@@ -216,6 +216,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         eta_window (int, default=64): number of previous measurements to use in eta calculation
 
         clearline (bool, default=True): if True messages are printed on the same line
+            otherwise each new progress message is printed on new line.
 
         adjust (bool, default=True): if True `freq` is adjusted based on time_thresh
 
