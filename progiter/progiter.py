@@ -572,11 +572,14 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         from math import log10, floor
         tzname = time.tzname[0]
-        length_unknown = self.total is None or self.total <= 0
+        length_unknown = self.total is None or self.total < 0
         if length_unknown:
             n_chrs = 4
         else:
-            n_chrs = int(floor(log10(float(self.total))) + 1)
+            if self.total == 0:
+                n_chrs = 1
+            else:
+                n_chrs = int(floor(log10(float(self.total))) + 1)
 
         if self.chunksize and not length_unknown:
             msg_body = [
