@@ -36,7 +36,7 @@ install:
   - travis_retry pip install -e .
     
 script: 
-  - travis_wait ./run_tests.py --network
+  - travis_wait ./run_tests.py
 
 after_success: 
     - codecov 
