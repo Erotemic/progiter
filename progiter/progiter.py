@@ -2,22 +2,86 @@
 """
 A Progress Iterator
 
-The API is compatible with TQDM.
+ProgIter lets you measure and print the progress of an iterative process. This
+can be done either via an iterable interface or using the manual API. Using the
+iterable inferface is most common.
 
-We have our own ways of running too!
-You can divide the runtime overhead by two as many times as you want.
+ProgIter was originally developed independantly of ``tqdm``, but the newer
+versions of this library have been designed to be compatible with tqdm-API.
+``ProgIter`` is now a (mostly) drop-in alternative to tqdm_. The ``tqdm``
+library may be more appropriate in some cases. *The main advantage of ``ProgIter``
+is that it does not use any python threading*, and therefore can be safer with
+code that makes heavy use of multiprocessing. `The reason`_ for this is that
+threading before forking may cause locks to be duplicated across processes,
+which may lead to deadlocks.
 
-CommandLine:
-    python -m progiter.progiter __doc__:0
+ProgIter is simpler than tqdm, which may be desirable for some applications.
+However, this also means ProgIter is not as extensible as tqdm.
+If you want a pretty bar or need something fancy, use tqdm;
+if you want useful information  about your iteration by default, use progiter.
+
+The basic usage of ProgIter is simple and intuitive. Just wrap a python
+iterable.  The following example wraps a ``range`` iterable and prints reported
+progress to stdout as the iterable is consumed.
 
 Example:
-    >>> # SCRIPT
-    >>> import progiter
+    >>> for n in ProgIter(range(1000)):
+    >>>     # do some work
+    >>>     pass
+
+Note that by default ProgIter reports information about iteration-rate,
+fraction-complete, estimated time remaining, time taken so far, and the current
+wall time.
+
+Example:
+    >>> # xdoctest: +IGNORE_WANT
     >>> def is_prime(n):
     ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
-    >>> for n in progiter.ProgIter(range(1000000), verbose=1):
+    >>> for n in ProgIter(range(1000), verbose=1):
     >>>     # do some work
     >>>     is_prime(n)
+    1000/1000... rate=21153.08 Hz, eta=0:00:00, total=0:00:00, wall=13:00 EST
+
+For more complex applications is may sometimes be desireable to
+manually use the ProgIter API. This is done as follows:
+
+Example:
+    >>> # xdoctest: +IGNORE_WANT
+    >>> n = 3
+    >>> prog = ProgIter(desc='manual', total=n, verbose=3)
+    >>> prog.begin() # Manually begin progress iteration
+    >>> for _ in range(n):
+    ...     prog.step(inc=1)  # specify the number of steps to increment
+    >>> prog.end()  # Manually end progress iteration
+    manual 0/3... rate=0 Hz, eta=?, total=0:00:00, wall=12:46 EST
+    manual 1/3... rate=12036.01 Hz, eta=0:00:00, total=0:00:00, wall=12:46 EST
+    manual 2/3... rate=16510.10 Hz, eta=0:00:00, total=0:00:00, wall=12:46 EST
+    manual 3/3... rate=20067.43 Hz, eta=0:00:00, total=0:00:00, wall=12:46 EST
+
+When working with ProgIter in either iterable or manual mode you can use the
+``prog.ensure_newline`` method to guarantee that the next call you make to
+stdout will start on a new line. You can also use the ``prog.set_extra`` method
+to update a dynamci "extra" message that is shown in the formatted output. The
+following example demonstrates this.
+
+Example:
+    >>> # xdoctest: +IGNORE_WANT
+    >>> def is_prime(n):
+    ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
+    >>> _iter = range(1000)
+    >>> prog = ProgIter(_iter, desc='check primes', verbose=2)
+    >>> for n in prog:
+    >>>     if n == 97:
+    >>>         print('!!! Special print at n=97 !!!')
+    >>>     if is_prime(n):
+    >>>         prog.set_extra('Biggest prime so far: {}'.format(n))
+    >>>         prog.ensure_newline()
+    check primes    0/1000... rate=0 Hz, eta=?, total=0:00:00, wall=12:55 EST
+    check primes    1/1000... rate=98376.78 Hz, eta=0:00:00, total=0:00:00, wall=12:55 EST
+    !!! Special print at n=97 !!!
+    check primes  257/1000...Biggest prime so far: 251 rate=308037.13 Hz, eta=0:00:00, total=0:00:00, wall=12:55 EST
+    check primes  642/1000...Biggest prime so far: 641 rate=185166.01 Hz, eta=0:00:00, total=0:00:00, wall=12:55 EST
+    check primes 1000/1000...Biggest prime so far: 997 rate=120063.72 Hz, eta=0:00:00, total=0:00:00, wall=12:55 EST
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -30,31 +94,21 @@ __all__ = [
     'ProgIter',
 ]
 
-if sys.version_info.major == 2:  # nocover
-    text_type = unicode
-    string_types = basestring,
-    default_timer = time.clock if sys.platform.startswith('win32') else time.time
-else:
+if sys.version_info.major > 2:  # nocover
     text_type = str
     string_types = str,
     default_timer = time.perf_counter
+else:   # nocover
+    # text_type = unicode
+    # string_types = basestring,
+    text_type = eval('unicode', {}, {})
+    string_types = (eval('basestring', {}, {}),)
+    default_timer = time.clock if sys.platform.startswith('win32') else time.time
+
 
 CLEAR_BEFORE = '\r'
 AT_END = '\n'
 CLEAR_AFTER = ''
-
-# Turns out we probably dont need all this ansi stuff
-# VT100 ANSI definitions
-# https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_codes
-# CLEARLINE_EL0 = '\33[0K'  # clear line to right
-# CLEARLINE_EL1 = '\33[1K'  # clear line to left
-# CLEARLINE_EL2 = '\33[2K'  # clear line
-# DECTCEM_HIDE = '\033[?25l'  # hide cursor
-# DECTCEM_SHOW = '\033[?25h'  # show cursor
-# if WITH_ANSI:  # pragma: nobranch
-#     CLEAR_BEFORE = '\r' + CLEARLINE_EL2 + DECTCEM_HIDE
-#     CLEAR_AFTER = CLEARLINE_EL0
-#     AT_END = DECTCEM_SHOW + '\n'
 
 
 def _infer_length(iterable):
@@ -204,7 +258,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     Attributes:
         iterable (iterable): An iterable iterable
 
-        desc (str): description label to sho w with progress
+        desc (str): description label to show with progress
 
         total (int): Maximum length of the process. If not specified, we
             estimate it from the iterable, if possible.
@@ -239,25 +293,30 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             0: enabled=False,
             1: enabled=True with clearline=True and adjust=True,
             2: enabled=True with clearline=False and adjust=True,
-            3: enabled+True with clearline=False and adjust=False
+            3: enabled=True with clearline=False and adjust=False
 
     Note:
         Either use ProgIter in a with statement or call prog.end() at the end
         of the computation if there is a possibility that the entire iterable
         may not be exhausted.
 
+    Note:
+        ProgIter is an alternative to `tqdm`.  The main difference between
+        `ProgIter` and `tqdm` is that ProgIter does not use threading where as
+        `tqdm` does.  `ProgIter` is simpler than `tqdm` and thus more stable in
+        certain circumstances.
+
     SeeAlso:
         tqdm - https://pypi.python.org/pypi/tqdm
 
-    Reference:
+    References:
         http://datagenetics.com/blog/february12017/index.html
 
     Example:
         >>> # doctest: +SKIP
-        >>> import progiter
         >>> def is_prime(n):
         ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
-        >>> for n in progiter.ProgIter(range(100), verbose=1):
+        >>> for n in ProgIter(range(100), verbose=1):
         >>>     # do some work
         >>>     is_prime(n)
         100/100... rate=... Hz, total=..., wall=... EST
@@ -364,8 +423,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             - [ ] extra is a bad name; come up with something better and rename
 
         Example:
-            >>> import progiter
-            >>> prog = progiter.ProgIter(range(100, 300, 100), show_times=False, verbose=3)
+            >>> prog = ProgIter(range(100, 300, 100), show_times=False, verbose=3)
             >>> for n in prog:
             >>>     prog.set_extra('processesing num {}'.format(n))
             0/2...
@@ -396,9 +454,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             inc (int, default=1): number of steps to increment
 
         Example:
-            >>> import progiter
             >>> n = 3
-            >>> prog = progiter.ProgIter(desc='manual', total=n, verbose=3)
+            >>> prog = ProgIter(desc='manual', total=n, verbose=3)
             >>> # Need to manually begin and end in this mode
             >>> prog.begin()
             >>> for _ in range(n):
@@ -406,10 +463,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> prog.end()
 
         Example:
-            >>> import progiter
             >>> n = 3
             >>> # can be used as a context manager in manual mode
-            >>> with progiter.ProgIter(desc='manual', total=n, verbose=3) as prog:
+            >>> with ProgIter(desc='manual', total=n, verbose=3) as prog:
             ...     for _ in range(n):
             ...         prog.step()
         """
@@ -446,6 +502,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     def begin(self):
         """
         Initializes information used to measure progress
+
+        This only needs to be used if this ProgIter is not wrapping an iterable.
+        Does nothing if the this ProgIter is disabled.
         """
         if not self.enabled:
             return
@@ -475,7 +534,11 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     def end(self):
         """
-        Stop measuring progress and print a final mesage if necssary.
+        Signals that iteration has ended and displays the final message.
+
+        This only needs to be used if this ProgIter is not wrapping an
+        iterable.  Does nothing if the this ProgIter object is disabled or has
+        already finished.
         """
         if not self.enabled or self.finished:
             return
@@ -566,9 +629,14 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> self = ProgIter(show_times=True)
             >>> print(self._build_message_template().strip())
             {desc} {iter_idx:4d}/?...{extra} rate={rate:{rate_format}} Hz, total={total}, wall={wall} ...
+
             >>> self = ProgIter(show_times=False)
             >>> print(self._build_message_template().strip())
             {desc} {iter_idx:4d}/?...{extra}
+
+            >>> self = ProgIter(total=0, show_times=True)
+            >>> print(self._build_message_template().strip())
+            {desc} {iter_idx:1d}/0...{extra} rate={rate:{rate_format}} Hz, total={total}, wall={wall} EST
         """
         from math import log10, floor
         tzname = time.tzname[0]
@@ -684,8 +752,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         Example:
             >>> # Unsafe version may write your message on the wrong line
-            >>> import progiter
-            >>> prog = progiter.ProgIter(range(4), show_times=False, verbose=1)
+            >>> prog = ProgIter(range(4), show_times=False, verbose=1)
             >>> for n in prog:
             ...     print('unsafe message')
              0/4...  unsafe message
@@ -696,7 +763,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             >>> # apparently the safe version does this too.
             >>> print('---')
             ---
-            >>> prog = progiter.ProgIter(range(4), show_times=False, verbose=1)
+            >>> prog = ProgIter(range(4), show_times=False, verbose=1)
             >>> for n in prog:
             ...     prog.ensure_newline()
             ...     print('safe message')
@@ -713,7 +780,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             self._cursor_at_newline = True
 
     def display_message(self):
-        """ Writes current progress to the output stream """
+        """
+        Writes current progress to the output stream
+        """
         msg = self.format_message()
         self._write(msg)
         self._tryflush()

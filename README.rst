@@ -4,7 +4,7 @@ ProgIter
 ========
 
 ProgIter lets you measure and print the progress of an iterative process. This
-can be done either via an iterable interface or using the manual api. Using the
+can be done either via an iterable interface or using the manual API. Using the
 iterable inferface is most common.
 
 ProgIter was originally developed independantly of ``tqdm``, but the newer
@@ -19,8 +19,7 @@ which may lead to deadlocks.
 ProgIter is simpler than tqdm, which may be desirable for some applications.
 However, this also means ProgIter is not as extensible as tqdm.
 If you want a pretty bar or need something fancy, use tqdm;
-if you want useful information  about your iteration by
-default, use progiter. 
+if you want useful information  about your iteration by default, use progiter. 
 
 Package level documentation can be found at: https://progiter.readthedocs.io/en/latest/
 
@@ -40,38 +39,79 @@ wall time.
 
 .. code:: python
 
-   >>> from progiter import ProgIter
-   >>> def is_prime(n):
-   ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
-   >>> for n in ProgIter(range(1000), verbose=2):
-   >>>     # do some work
-   >>>     is_prime(n)
-       0/1000... rate=0.00 Hz, eta=?, total=0:00:00, wall=14:05 EST 
-       1/1000... rate=82241.25 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST 
-     257/1000... rate=177204.69 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST 
-     642/1000... rate=94099.22 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST 
-    1000/1000... rate=71886.74 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST 
+    >>> from progiter import ProgIter
+    >>> def is_prime(n):
+    ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
+    >>> for n in ProgIter(range(1000), verbose=2):
+    >>>     # do some work
+    >>>     is_prime(n)
+       0/1000... rate=0 Hz, eta=?, total=0:00:00, wall=12:47 EST
+       1/1000... rate=58551.44 Hz, eta=0:00:00, total=0:00:00, wall=12:47 EST
+     257/1000... rate=317349.77 Hz, eta=0:00:00, total=0:00:00, wall=12:47 EST
+     642/1000... rate=191396.29 Hz, eta=0:00:00, total=0:00:00, wall=12:47 EST
+    1000/1000... rate=139756.95 Hz, eta=0:00:00, total=0:00:00, wall=12:47 EST
+
+
+
+For more complex applications is may sometimes be desireable to manually use
+the ProgIter API. This is done as follows:
+
+.. code:: python 
+
+    >>> from progiter import ProgIter
+    >>> n = 3
+    >>> prog = ProgIter(desc='manual', total=n, verbose=3)
+    >>> prog.begin() # Manually begin progress iteration
+    >>> for _ in range(n):
+    ...     prog.step(inc=1)  # specify the number of steps to increment
+    >>> prog.end()  # Manually end progress iteration
+    manual 0/3... rate=0 Hz, eta=?, total=0:00:00, wall=12:46 EST
+    manual 1/3... rate=12036.01 Hz, eta=0:00:00, total=0:00:00, wall=12:46 EST
+    manual 2/3... rate=16510.10 Hz, eta=0:00:00, total=0:00:00, wall=12:46 EST
+    manual 3/3... rate=20067.43 Hz, eta=0:00:00, total=0:00:00, wall=12:46 EST
+
+When working with ProgIter in either iterable or manual mode you can use the
+``prog.ensure_newline`` method to guarantee that the next call you make to stdout
+will start on a new line. You can also use the ``prog.set_extra`` method to
+update a dynamci "extra" message that is shown in the formatted output. The
+following example demonstrates this.
+
+
+.. code:: python 
+
+    >>> from progiter import ProgIter
+    >>> def is_prime(n):
+    ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
+    >>> _iter = range(1000)
+    >>> prog = ProgIter(_iter, desc='check primes', verbose=2)
+    >>> for n in prog:
+    >>>     if n == 97:
+    >>>         print('!!! Special print at n=97 !!!')
+    >>>     if is_prime(n):
+    >>>         prog.set_extra('Biggest prime so far: {}'.format(n))
+    >>>         prog.ensure_newline()
+    check primes    0/1000... rate=0 Hz, eta=?, total=0:00:00, wall=12:55 EST
+    check primes    1/1000... rate=98376.78 Hz, eta=0:00:00, total=0:00:00, wall=12:55 EST
+    !!! Special print at n=97 !!!
+    check primes  257/1000...Biggest prime so far: 251 rate=308037.13 Hz, eta=0:00:00, total=0:00:00, wall=12:55 EST
+    check primes  642/1000...Biggest prime so far: 641 rate=185166.01 Hz, eta=0:00:00, total=0:00:00, wall=12:55 EST
+    check primes 1000/1000...Biggest prime so far: 997 rate=120063.72 Hz, eta=0:00:00, total=0:00:00, wall=12:55 EST
+
 
 Installation
 ------------
 
-ProgIter is included in distributions of `ubelt`_. If you have ubelt, you also
-have progiter. However, progiter can be explicitly installed without ubelt
-using `pip`.
+ProgIter can be easilly installed via `pip`. 
 
-From pypi:
-^^^^^^^^^^
-
-::
+.. code:: bash
 
    pip install progiter
 
-From github:
-^^^^^^^^^^^^
+Alternatively, the `ubelt`_ library ships with its own version of ProgIter.
+Note that the `ubelt` version of progiter is distinct (i.e. ubelt actually
+contains a copy of this library), but the two libraries are generally kept in
+sync. 
 
-::
-
-   pip install git+https://github.com/Erotemic/progiter.git
 
 .. _ubelt: https://github.com/Erotemic/ubelt
 .. _tqdm: https://pypi.python.org/pypi/tqdm
