@@ -108,13 +108,16 @@ def parse_requirements(fname='requirements.txt'):
             packages.append(package)
     return packages
 
-version = parse_version('progiter/__init__.py')  # needs to be a global var for git tags
+
+NAME = 'progiter'
+VERSION = version = parse_version('progiter/__init__.py')  # needs to be a global var for git tags
 
 if __name__ == '__main__':
     setup(
-        name='progiter',
-        version=version,
+        name=NAME,
+        version=VERSION,
         author='Jon Crall',
+        author_email='erotemic@gmail.com',
         description='A single-threaded alternative to tqdm.',
         long_description=parse_description(),
         install_requires=parse_requirements('requirements/runtime.txt'),
@@ -123,7 +126,6 @@ if __name__ == '__main__':
             'tests': parse_requirements('requirements/tests.txt'),
             'docs': parse_requirements('docs/requirements.txt'),
         },
-        author_email='erotemic@gmail.com',
         url='https://github.com/Erotemic/progiter',
         license='Apache 2',
         packages=['progiter'],
