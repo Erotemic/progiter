@@ -4,8 +4,20 @@ We are currently working on porting this changelog to the specifications in
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version: 0.1.4] - Unreleased
 
-## [Version: 0.1.2] - Unreleased
+### Fixed
+* `ProgIter` now correctly checks if it needs to displays a message on every iteration.
+
+### Changed
+* `ProgIter.step` now respects update freq, and will not update the estimates
+  if too few iterations have passed.
+
+## [Version: 0.1.3] - Released
+
+* Undocumented
+
+## [Version: 0.1.2] - Released
 
 ### Fixed 
 * Setting `total=0` now correctly shows progress as `0/0`
