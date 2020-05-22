@@ -7,6 +7,10 @@ ProgIter lets you measure and print the progress of an iterative process. This
 can be done either via an iterable interface or using the manual API. Using the
 iterable inferface is most common.
 
+.. image:: https://i.imgur.com/HoJJYzd.gif
+   :height: 100px
+   :align: left
+
 ProgIter was originally developed independantly of ``tqdm``, but the newer
 versions of this library have been designed to be compatible with tqdm-API.
 ``ProgIter`` is now a (mostly) drop-in alternative to tqdm_. The ``tqdm``
@@ -36,11 +40,6 @@ https://progiter.readthedocs.io/en/latest/progiter.progiter.html#progiter.progit
 Note that by default ProgIter reports information about iteration-rate,
 fraction-complete, estimated time remaining, time taken so far, and the current
 wall time.
-
-
-.. image:: https://i.imgur.com/HoJJYzd.gif
-   :height: 100px
-   :align: left
 
 
 .. code:: python
