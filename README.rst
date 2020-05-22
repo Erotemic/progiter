@@ -37,6 +37,12 @@ Note that by default ProgIter reports information about iteration-rate,
 fraction-complete, estimated time remaining, time taken so far, and the current
 wall time.
 
+
+.. image:: https://i.imgur.com/HoJJYzd.gif
+   :height: 100px
+   :align: left
+
+
 .. code:: python
 
     >>> from progiter import ProgIter
