@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 * `ProgIter` now correctly checks if it needs to displays a message on every iteration.
+* fixed uninitialized `_cursor_at_newline ` variable in `ProgIter`.
 
 ### Changed
 * `ProgIter.step` now respects update freq, and will not update the estimates
