@@ -51,7 +51,7 @@ wall time.
 from __future__ import unicode_literals
 from .progiter import (ProgIter,)
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 __all__ = [
     'ProgIter',
 ]
