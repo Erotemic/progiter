@@ -1,4 +1,4 @@
-|CircleCI| |Travis| |Appveyor| |Codecov| |Pypi| |Downloads| |ReadTheDocs|
+|CircleCI| |Appveyor| |Codecov| |Pypi| |Downloads| |ReadTheDocs|
 
 ProgIter
 ========
@@ -8,7 +8,7 @@ can be done either via an iterable interface or using the manual API. Using the
 iterable inferface is most common.
 
 .. image:: https://i.imgur.com/HoJJYzd.gif
-   :height: 100px
+   :height: 300px
    :align: left
 
 ProgIter was originally developed independantly of ``tqdm``, but the newer
