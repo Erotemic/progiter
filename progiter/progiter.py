@@ -312,7 +312,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             indicates that each iteration processes a batch of this size.
             Iteration rate is displayed in terms of single-items.
 
-        rel_adjust_limit (float, default=3.0):
+        rel_adjust_limit (float, default=4.0):
             Maximum factor update frequency can be adjusted by in a single
             step.
 
