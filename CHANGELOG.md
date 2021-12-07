@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Version: 0.1.4] - Unreleased
 
+<<<<<<< HEAD
 ### Fixed
 * `ProgIter` now correctly checks if it needs to displays a message on every iteration.
 * fixed uninitialized `_cursor_at_newline ` variable in `ProgIter`.
@@ -19,6 +20,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Undocumented
 
 ## [Version: 0.1.2] - Released
+=======
+## [Version: 0.1.3] - Unreleased
+
+### Updated
+
+* Added ubelt updates
+
+
+## [Version: 0.1.2] - Unreleased
+>>>>>>> 61110c6 (Changes with conflicts)
 
 ### Fixed 
 * Setting `total=0` now correctly shows progress as `0/0`
