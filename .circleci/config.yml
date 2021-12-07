@@ -27,8 +27,10 @@ workflows:
   test:
     jobs:
       - test_minimal/cp3_10-3_10-linux:
-          filters:
-              <<: *__ignore_release__
+          filters: &__ignore_release__ # this yaml anchor to ignore tests on the release branch
+              branches:
+                  ignore: 
+                      - release
       - test_minimal/cp39-39-linux:
           filters:
               <<: *__ignore_release__
