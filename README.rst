@@ -1,4 +1,8 @@
-|CircleCI| |Appveyor| |Codecov| |Pypi| |Downloads| |ReadTheDocs|
+|GithubActions| |ReadTheDocs| |Pypi| |Downloads| |Codecov| 
+
+.. foo
+    |CircleCI| |Appveyor| 
+    |GithubActions| |CircleCI| |Appveyor| |Codecov| |Pypi| |Downloads| |ReadTheDocs|
 
 ProgIter
 ========
@@ -137,3 +141,5 @@ sync.
     :target: https://circleci.com/gh/Erotemic/progiter
 .. |ReadTheDocs| image:: https://readthedocs.org/projects/progiter/badge/?version=latest
     :target: http://progiter.readthedocs.io/en/latest/
+.. |GithubActions| image:: https://github.com/Erotemic/progiter/actions/workflows/tests.yml/badge.svg?branch=main
+    :target: https://github.com/Erotemic/progiter/actions?query=branch%3Amain
