@@ -35,17 +35,21 @@ wall time.
 
 .. code:: python
 
+   >>> # xdoctest: +SKIP
    >>> from progiter import ProgIter
    >>> def is_prime(n):
    ...     return n >= 2 and not any(n % i == 0 for i in range(2, n))
    >>> for n in ProgIter(range(1000), verbose=2):
    >>>     # do some work
    >>>     is_prime(n)
-       0/1000... rate=0.00 Hz, eta=?, total=0:00:00, wall=14:05 EST
-       1/1000... rate=82241.25 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST
-     257/1000... rate=177204.69 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST
-     642/1000... rate=94099.22 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST
-    1000/1000... rate=71886.74 Hz, eta=0:00:00, total=0:00:00, wall=14:05 EST
+        0/1000... rate=0 Hz, eta=?, total=0:00:00
+        1/1000... rate=137004.92 Hz, eta=0:00:00, total=0:00:00
+        4/1000... rate=117671.14 Hz, eta=0:00:00, total=0:00:00
+       16/1000... rate=265151.10 Hz, eta=0:00:00, total=0:00:00
+       64/1000... rate=511709.21 Hz, eta=0:00:00, total=0:00:00
+      256/1000... rate=541513.70 Hz, eta=0:00:00, total=0:00:00
+     1000/1000... rate=251898.43 Hz, eta=0:00:00, total=0:00:00
+
 
 """
 from __future__ import unicode_literals
