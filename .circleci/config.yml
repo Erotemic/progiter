@@ -26,35 +26,6 @@ workflows:
   version: 2
   test:
     jobs:
-      #- test_full/cp3_10-3_10-linux:
-      #    filters: &__ignore_release__ # this yaml anchor to ignore tests on the release branch
-      #        branches:
-      #            ignore: 
-      #                - release
-      - test_full/cp39-39-linux:
-          filters: &__ignore_release__ # this yaml anchor to ignore tests on the release branch
-              branches:
-                  ignore: 
-                      - release
-      - test_full/cp38-38-linux:
-          filters:
-              <<: *__ignore_release__
-      - test_full/cp37-37m-linux:
-          filters:
-              <<: *__ignore_release__
-      - test_full/cp36-36m-linux:
-          filters:
-              <<: *__ignore_release__
-      - test_full/cp35-35m-linux:
-          filters:
-              <<: *__ignore_release__
-      #- test_full/cp34-34m-linux:
-      #    filters:
-      #        <<: *__ignore_release__
-      - test_full/cp27-27mu-linux:
-          filters:
-              <<: *__ignore_release__
-
       - test_minimal/cp3_10-3_10-linux:
           filters:
               <<: *__ignore_release__
@@ -81,9 +52,6 @@ workflows:
               <<: *__ignore_release__
 
       - test_minimal/pypy3:
-          filters:
-              <<: *__ignore_release__
-      - test_full/pypy3:
           filters:
               <<: *__ignore_release__
 
@@ -209,7 +177,7 @@ jobs:
         curl -fLSs https://raw.githubusercontent.com/CircleCI-Public/circleci-cli/master/install.sh | DESTDIR=$HOME/.local/bin bash
 
         # Run entire script end-to-end
-        circleci local execute --job test_full/pypy3
+        circleci local execute --job test_minimal/pypy3
 
         # Manually drop into docker and run things
         docker run -v $(pwd):/io -it pypy:3 bash
