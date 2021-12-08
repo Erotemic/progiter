@@ -209,11 +209,10 @@ jobs:
         python-version: 3.8
 
     - name: Combine coverage Linux
-      # Dont know why I cant key on 3.4 here
       if: runner.os == 'Linux'
       env:
         CI_PYTHON_VERSION: py${{ matrix.python-version }}
-      #if: runner.os == 'Linux' && matrix.python-version != '3.4.0'
+      if: runner.os == 'Linux' && matrix.python-version != '3.4.00'
       #if: ${{ runner.os == 'Linux' && matrix.python-version == '3.4.0' }}
       #if: matrix.python-version != 3.4.0 
       run: |
@@ -221,7 +220,7 @@ jobs:
         pwd
         ls -al
         echo "CI_PYTHON_VERSION = $CI_PYTHON_VERSION"
-        if [[ "$CI_PYTHON_VERSION" != "py3.4.0" ]]; then
+        if [[ "$CI_PYTHON_VERSION" != "py3.4.10" ]]; then
           python -m pip install coverage[toml]
           echo '############ combine'
           coverage combine .
