@@ -209,7 +209,7 @@ jobs:
         python-version: 3.8
 
     - name: Combine coverage Linux
-      if: runner.os == 'Linux' && startsWith(matrix.python-version, '3.4')
+      if: runner.os == 'Linux' && runner.python-version != '3.4.0'
       run: |
         echo '############ PWD'
         pwd
