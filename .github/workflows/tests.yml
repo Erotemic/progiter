@@ -209,21 +209,28 @@ jobs:
         python-version: 3.8
 
     - name: Combine coverage Linux
+      # Dont know why I cant key on 3.4 here
+      if: runner.os == 'Linux'
+      env:
+        CI_PYTHON_VERSION: py${{ matrix.python-version }}
       #if: runner.os == 'Linux' && matrix.python-version != '3.4.0'
       #if: ${{ runner.os == 'Linux' && matrix.python-version == '3.4.0' }}
-      if: matrix.python-version != 3.4.0 
+      #if: matrix.python-version != 3.4.0 
       run: |
         echo '############ PWD'
         pwd
         ls -al
-        python -m pip install coverage[toml]
-        echo '############ combine'
-        coverage combine .
-        echo '############ XML'
-        coverage xml -o ./tests/coverage.xml
-        echo '############ FIND'
-        find . -name .coverage.*
-        find . -name coverage.xml
+        echo "CI_PYTHON_VERSION = $CI_PYTHON_VERSION"
+        if [[ "$CI_PYTHON_VERSION" != "py3.4.0" ]]; then
+          python -m pip install coverage[toml]
+          echo '############ combine'
+          coverage combine .
+          echo '############ XML'
+          coverage xml -o ./tests/coverage.xml
+          echo '############ FIND'
+          find . -name .coverage.*
+          find . -name coverage.xml
+        fi
 
     - name: Codecov Upload
       uses: codecov/codecov-action@v1
