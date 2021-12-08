@@ -4,7 +4,7 @@ We are currently working on porting this changelog to the specifications in
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Version: 0.1.4] - Unreleased
+## [Version: 0.1.4] - Released 2021-12-07
 
 ### Fixed
 * `ProgIter` now correctly checks if it needs to displays a message on every iteration.
@@ -21,7 +21,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * Undocumented
 
 
-## [Version: 0.1.2] - Unreleased
+## [Version: 0.1.2] - Released 2021-12-07
 
 ### Fixed 
 * Setting `total=0` now correctly shows progress as `0/0`
@@ -45,3 +45,6 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 * Initial version ported from ubelt
+## Version 0.1.5 - Unreleased
+
+
