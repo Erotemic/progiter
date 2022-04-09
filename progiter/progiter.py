@@ -440,7 +440,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.begin()
         return self
 
-    def __exit__(self, type, value, trace):
+    def __exit__(self, type_, value, trace):
         if trace is not None:
             return False
         else:
