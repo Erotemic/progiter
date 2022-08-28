@@ -115,7 +115,7 @@ else:   # nocover
 
 CLEAR_BEFORE = '\r'
 AT_END = '\n'
-CLEAR_AFTER = ''
+CLEAR_AFTER = ''  # todo: remove, this does nothing
 
 
 def _infer_length(iterable):
@@ -423,6 +423,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # if characters have been written with no newline yet.
         self._cursor_at_newline = True
 
+        self._prev_msg_len = 0  # used to ensure lines are fully cleared
+        self._fix_issue_21 = True
+
         self._reset_internals()
 
     def __call__(self, iterable):
@@ -662,6 +665,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         Defines the template for the progress line
 
         Example:
+            >>> from progiter import ProgIter
             >>> self = ProgIter(show_times=True)
             >>> print(self._build_message_template().strip())
             {desc} {iter_idx:4d}/?...{extra} rate={rate:{rate_format}} Hz, total={total} ...
@@ -715,12 +719,20 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             msg_body += [
                 (', wall={wall}'),
             ]
-        if self.clearline:
-            msg_body = [CLEAR_BEFORE] + msg_body + [CLEAR_AFTER]
+
+        if self._fix_issue_21:
+            if self.clearline:
+                parts = (CLEAR_BEFORE, ''.join(msg_body), CLEAR_AFTER)
+            else:
+                parts = ('', ''.join(msg_body), AT_END)
+            return parts
         else:
-            msg_body = msg_body + [AT_END]
-        msg_fmtstr_time = ''.join(msg_body)
-        return msg_fmtstr_time
+            if self.clearline:
+                msg_body = [CLEAR_BEFORE] + msg_body + [CLEAR_AFTER]
+            else:
+                msg_body = msg_body + [AT_END]
+            msg_fmtstr_time = ''.join(msg_body)
+            return msg_fmtstr_time
 
     def format_message(self):
         r"""
@@ -761,9 +773,14 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         else:
             total = text_type(timedelta(seconds=int(self._total_seconds)))
 
+        if self._fix_issue_21:
+            before, fmtstr, after = self._msg_fmtstr
+        else:
+            fmtstr = self._msg_fmtstr
+
         # similar to tqdm.format_meter
         if self.chunksize and self.total:
-            msg = self._msg_fmtstr.format(
+            msg = fmtstr.format(
                 desc=self.desc,
                 percent=self._now_idx / self.total * 100,
                 rate=self._iters_per_second * self.chunksize,
@@ -773,7 +790,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 extra=self.extra,
             )
         else:
-            msg = self._msg_fmtstr.format(
+            msg = fmtstr.format(
                 desc=self.desc,
                 iter_idx=self._now_idx,
                 rate=self._iters_per_second,
@@ -782,7 +799,11 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 wall=time.strftime('%Y-%m-%d %H:%M ') + time.tzname[0] if self.show_wall else None,
                 extra=self.extra,
             )
-        return msg
+
+        if self._fix_issue_21:
+            return before, msg, after
+        else:
+            return msg
 
     def ensure_newline(self):
         """
@@ -815,14 +836,25 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         if not self._cursor_at_newline:
             self._write(AT_END)
+            self._prev_msg_len = 0
             self._cursor_at_newline = True
 
     def display_message(self):
         """
         Writes current progress to the output stream
         """
-        msg = self.format_message()
-        self._write(msg)
+        if self._fix_issue_21:
+            before, msg, after = self.format_message()
+            msg_len = len(msg)  # TODO account for unicode
+            if self.clearline:
+                padding = self._prev_msg_len - msg_len
+                if padding > 0:
+                    msg = msg + ' ' * padding
+            self._write(''.join([before, msg, after]))
+            self._prev_msg_len = msg_len
+        else:
+            msg = self.format_message()
+            self._write(msg)
         self._tryflush()
         self._cursor_at_newline = not self.clearline
 
