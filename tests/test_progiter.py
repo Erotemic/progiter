@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 pytest tests/test_progiter.py
 """
-from six.moves import cStringIO
+from io import StringIO
 from xdoctest.utils import strip_ansi
 from xdoctest.utils import CaptureStdout
 from progiter import ProgIter
@@ -43,22 +42,22 @@ def test_rate_format_string():
 
 def test_rate_format():
     # Define a function that takes some time
-    file = cStringIO()
+    file = StringIO()
     prog = ProgIter(file=file)
     prog.begin()
 
     prog._iters_per_second = .000001
-    msg = prog.format_message()
+    msg = prog.format_message()[1]
     rate_part = msg.split('rate=')[1].split(' Hz')[0]
     assert rate_part == '1e-06'
 
     prog._iters_per_second = .1
-    msg = prog.format_message()
+    msg = prog.format_message()[1]
     rate_part = msg.split('rate=')[1].split(' Hz')[0]
     assert rate_part == '0.10'
 
     prog._iters_per_second = 10000
-    msg = prog.format_message()
+    msg = prog.format_message()[1]
     rate_part = msg.split('rate=')[1].split(' Hz')[0]
     assert rate_part == '10000.00'
 
@@ -70,7 +69,7 @@ def test_progiter():
     N = 500
 
     if False:
-        file = cStringIO()
+        file = StringIO()
         prog = ProgIter(range(N), clearline=False, file=file, freq=N // 10,
                         adjust=False)
         file.seek(0)
@@ -97,7 +96,6 @@ def test_progiter():
           'insignificant')
     print('this is verbosity mode verbose=0')
     sequence = (is_prime(n) for n in range(N0, N))
-    # with ub.Timer('demo0'):
     if True:
         psequence = ProgIter(sequence, total=total, desc='demo0',
                              enabled=False)
@@ -107,7 +105,6 @@ def test_progiter():
     print('Demo #1: progress is shown by default in the same line')
     print('this is verbosity mode verbose=1')
     sequence = (is_prime(n) for n in range(N0, N))
-    # with ub.Timer('demo1'):
     if True:
         psequence = ProgIter(sequence, total=total, desc='demo1')
         list(psequence)
@@ -119,7 +116,6 @@ def test_progiter():
     print('Progress is only printed as needed')
     print('Notice the adjustment behavior of the print frequency')
     print('this is verbosity mode verbose=2')
-    # with ub.Timer('demo2'):
     if True:
         sequence = (is_prime(n) for n in range(N0, N))
         psequence = ProgIter(sequence, total=total, clearline=False,
@@ -132,7 +128,6 @@ def test_progiter():
     print('Demo #3: Adjustments can be turned off to give constant feedback')
     print('this is verbosity mode verbose=3')
     sequence = (is_prime(n) for n in range(N0, N))
-    # with ub.Timer('demo3'):
     if True:
         psequence = ProgIter(sequence, total=total, adjust=False,
                              clearline=False, freq=100, desc='demo3')
@@ -141,10 +136,10 @@ def test_progiter():
 
 def test_progiter_offset_10():
     """
-    pytest -s  ~/code/progiter/tests/test_progiter.py::test_progiter_offset_10
+    pytest -s  tests/test_progiter.py::test_progiter_offset_10
     """
     # Define a function that takes some time
-    file = cStringIO()
+    file = StringIO()
     list(ProgIter(range(10), total=20, verbose=3, start=10, file=file,
                   freq=5, show_times=False))
     file.seek(0)
@@ -159,10 +154,10 @@ def test_progiter_offset_10():
 
 def test_progiter_offset_0():
     """
-    pytest -s  ~/code/progiter/tests/test_progiter.py::test_progiter_offset_0
+    pytest -s  tests/test_progiter.py::test_progiter_offset_0
     """
     # Define a function that takes some time
-    file = cStringIO()
+    file = StringIO()
     for _ in ProgIter(range(10), total=20, verbose=3, start=0, file=file,
                       freq=5, show_times=False):
         pass
@@ -185,10 +180,10 @@ def time_progiter_overhead():
         from sklearn.externals.progiter import ProgIter
         import numpy as np
         import time
-        from six.moves import cStringIO, range
+        from six.moves import StringIO, range
         import utool as ut
         N = 500
-        file = cStringIO()
+        file = StringIO()
         rng = np.random.RandomState(42)
         ndims = 2
         vec1 = rng.rand(113, ndims)
@@ -272,7 +267,7 @@ def test_unknown_total():
     Make sure a question mark is printed if the total is unknown
     """
     iterable = (_ for _ in range(0, 10))
-    file = cStringIO()
+    file = StringIO()
     prog = ProgIter(iterable, desc='unknown seq', file=file,
                     show_times=False, verbose=1)
     for n in prog:
@@ -288,10 +283,10 @@ def test_initial():
     """
     Make sure a question mark is printed if the total is unknown
     """
-    file = cStringIO()
+    file = StringIO()
     prog = ProgIter(initial=9001, file=file, show_times=False, clearline=False)
-    message = prog.format_message()
-    assert strip_ansi(message) == ' 9001/?... \n'
+    message = prog.format_message()[1]
+    assert strip_ansi(message) == ' 9001/?... '
 
 
 def test_clearline():
@@ -300,16 +295,18 @@ def test_clearline():
 
     pytest tests/test_progiter.py::test_clearline
     """
-    file = cStringIO()
+    file = StringIO()
     # Clearline=False version should simply have a newline at the end.
     prog = ProgIter(file=file, show_times=False, clearline=False)
-    message = prog.format_message()
-    assert strip_ansi(message).strip(' ') == '0/?... \n'
+    before, message, after = prog.format_message()
+    assert before == ''
+    assert strip_ansi(message).strip(' ') == '0/?...'
     # Clearline=True version should carrage return at the begining and have no
     # newline at the end.
     prog = ProgIter(file=file, show_times=False, clearline=True)
-    message = prog.format_message()
-    assert strip_ansi(message).strip(' ') == '\r    0/?...'
+    before, message, after = prog.format_message()
+    assert before == '\r'
+    assert strip_ansi(message).strip(' ') == '0/?...'
 
 
 def test_disabled():
@@ -418,9 +415,5 @@ def test_tqdm_compatibility():
 
 
 if __name__ == '__main__':
-    r"""
-    CommandLine:
-        pytest tests/test_progiter.py
-    """
     import pytest
     pytest.main([__file__])
