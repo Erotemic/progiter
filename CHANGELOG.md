@@ -9,8 +9,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 
 ### Changed
-* Nothing yet 
+* `ProgIter.format_message` return value has changed.
 
+### Fixed
+* Issue 21
 
 ## [Version: 0.1.4] - Released 2021-12-07
 

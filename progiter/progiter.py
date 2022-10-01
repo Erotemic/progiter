@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 """
 A Progress Iterator
 
 ProgIter lets you measure and print the progress of an iterative process. This
 can be done either via an iterable interface or using the manual API. Using the
-iterable inferface is most common.
+iterable interface is most common.
 
-ProgIter was originally developed independantly of tqdm, but the newer versions
+ProgIter was originally developed independently of tqdm, but the newer versions
 of this library have been designed to be compatible with tqdm-API.
 :class:`ProgIter` is now a (mostly) drop-in alternative to :func:`tqdm.tqdm`. The
 :mod:`tqdm` library may be more appropriate in some cases. *The main advantage of
@@ -44,7 +43,7 @@ Example:
     1000/1000... rate=114326.51 Hz, eta=0:00:00, total=0:00:00
 
 
-For more complex applications is may sometimes be desireable to
+For more complex applications is may sometimes be desirable to
 manually use the ProgIter API. This is done as follows:
 
 Example:
@@ -89,9 +88,10 @@ Example:
     check primes  512/1000...Biggest prime so far: 509 rate=165271.92 Hz, eta=0:00:00, total=0:00:00, wall=2020-10-23 17:27 EST
     check primes  768/1000...Biggest prime so far: 761 rate=136480.12 Hz, eta=0:00:00, total=0:00:00, wall=2020-10-23 17:27 EST
     check primes 1000/1000...Biggest prime so far: 997 rate=115214.95 Hz, eta=0:00:00, total=0:00:00, wall=2020-10-23 17:27 EST
+
+TODO:
+    - [ ] Specify callback that occurs whenever progress is written?
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
 import sys
 import time
 import collections
@@ -101,22 +101,11 @@ __all__ = [
     'ProgIter',
 ]
 
-if sys.version_info.major > 2:  # nocover
-    text_type = str
-    string_types = str,
-    default_timer = time.perf_counter
-else:   # nocover
-    # text_type = unicode
-    # string_types = basestring,
-    text_type = eval('unicode', {}, {})  # type: ignore
-    string_types = (eval('basestring', {}, {}),)  # type: ignore
-    default_timer = time.clock if sys.platform.startswith('win32') else time.time  # type: ignore
+default_timer = time.perf_counter
 
 
 CLEAR_BEFORE = '\r'
 AT_END = '\n'
-CLEAR_AFTER = ''  # todo: remove, this does nothing
-
 
 def _infer_length(iterable):
     """
@@ -221,7 +210,7 @@ class _TQDMCompat(object):
             if isinstance(postfix[key], numbers.Number):
                 postfix[key] = '{0:2.3g}'.format(postfix[key])
             # Else for any other type, try to get the string conversion
-            elif not isinstance(postfix[key], string_types):
+            elif not isinstance(postfix[key], str):
                 postfix[key] = str(postfix[key])
             # Else if it's a string, don't need to preprocess anything
         # Stitch together to get the final postfix
@@ -263,8 +252,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     ProgIter does not use threading where as `tqdm` does.
 
     Attributes:
-        iterable (iterable):
-            An iterable iterable
+        iterable (List | Iterable):
+            A list or iterable to loop over
 
         desc (str):
             description label to show with progress
@@ -273,48 +262,52 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             Maximum length of the process. If not specified, we estimate it
             from the iterable, if possible.
 
-        freq (int, default=1):
+        freq (int):
             How many iterations to wait between messages.
+            Defaults to 1.
 
-        adjust (bool, default=True):
+        adjust (bool):
             if True freq is adjusted based on time_thresh
+            Defaults to True.
 
-        eta_window (int, default=64):
-            number of previous measurements to use in eta calculation
+        eta_window (int):
+            number of previous measurements to use in eta calculation, default=64
 
-        clearline (bool, default=True):
+        clearline (bool):
             if True messages are printed on the same line otherwise each new
             progress message is printed on new line.
+            default=True
 
-        adjust (bool, default=True):
+        adjust (bool):
             if True `freq` is adjusted based on time_thresh. This may be
             overwritten depending on the setting of verbose.
+            default=True
 
-        time_thresh (float, default=2.0):
+        time_thresh (float):
             desired amount of time to wait between messages if adjust is True
-            otherwise does nothing
+            otherwise does nothing, default=2.0
 
-        show_times (bool, default=True):
-            shows rate and eta
+        show_times (bool):
+            shows rate and eta, default=True
 
-        show_wall (bool, default=False):
-            show wall time
+        show_wall (bool):
+            show wall time, default=False
 
-        initial (int, default=0):
-            starting index offset
+        initial (int):
+            starting index offset, default=0
 
-        stream (file, default=sys.stdout):
-            stream where progress information is written to
+        stream (typing.IO):
+            stream where progress information is written to, default=sys.stdout
 
-        enabled (bool, default=True): if False nothing happens.
+        enabled (bool): if False nothing happens. default=True
 
-        chunksize (int, optional):
+        chunksize (int | None):
             indicates that each iteration processes a batch of this size.
             Iteration rate is displayed in terms of single-items.
 
-        rel_adjust_limit (float, default=4.0):
+        rel_adjust_limit (float):
             Maximum factor update frequency can be adjusted by in a single
-            step.
+            step. default=4.0
 
         verbose (int):
             verbosity mode, which controls clearline, adjust, and enabled. The
@@ -383,8 +376,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 adjust = False
             freq = kwargs.pop('miniters', freq)
 
-            kwargs.pop('position', None)  # API compatability does nothing
-            kwargs.pop('dynamic_ncols', None)  # API compatability does nothing
+            kwargs.pop('position', None)  # API compatibility does nothing
+            kwargs.pop('dynamic_ncols', None)  # API compatibility does nothing
             kwargs.pop('leave', True)  # we always leave
 
             # Accept the old api keywords
@@ -533,7 +526,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._iter_idx = self.initial
         self._last_idx = self.initial - 1
         # now time is actually not right now
-        # now refers the the most recent measurment
+        # now refers the the most recent measurement
         # last refers to the measurement before that
         self._now_idx = self.initial
         self._now_time = 0
@@ -543,12 +536,22 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._iters_per_second = 0.0
         self._update_message_template()
 
+    def start(self):  # nocover
+        """
+        Alias of :func:`ProgIter.begin`
+        """
+        return self.begin()
+
     def begin(self):
         """
         Initializes information used to measure progress
 
         This only needs to be used if this ProgIter is not wrapping an iterable.
         Does nothing if the this ProgIter is disabled.
+
+        Returns:
+            ProgIter:
+                a chainable self-reference
         """
         if not self.enabled:
             return
@@ -560,7 +563,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         # Time progress was initialized
         self._start_time = default_timer()
-        # Last time measures were udpated
+        # Last time measures were updated
         self._last_time  = self._start_time
         self._now_idx = self._iter_idx
         self._now_time = self._start_time
@@ -575,6 +578,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._cursor_at_newline = not self.clearline
         self.started = True
         self.finished = False
+        return self
 
     def end(self):
         """
@@ -598,7 +602,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     def _adjust_frequency(self):
         # Adjust frequency so the next print will not happen until
-        # approximatly `time_thresh` seconds have passed as estimated by
+        # approximately `time_thresh` seconds have passed as estimated by
         # iter_idx.
         eps = 1E-9
         self._max_between_time = max(self._max_between_time,
@@ -651,7 +655,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             self._est_seconds_left  = est_eta
 
         # Adjust frequency if printing too quickly
-        # so progress doesnt slow down actual function
+        # so progress does not slow down actual function
         if self.adjust and (self._between_time < self.time_thresh or
                             self._between_time > self.time_thresh * 2.0):
             self._adjust_frequency()
@@ -664,7 +668,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         Defines the template for the progress line
 
         Example:
-            >>> from progiter import ProgIter
             >>> self = ProgIter(show_times=True)
             >>> print(self._build_message_template()[1].strip())
             {desc} {iter_idx:4d}/?...{extra} rate={rate:{rate_format}} Hz, total={total}...
@@ -720,7 +723,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             ]
 
         if self.clearline:
-            parts = (CLEAR_BEFORE, ''.join(msg_body), CLEAR_AFTER)
+            parts = (CLEAR_BEFORE, ''.join(msg_body), '')
         else:
             parts = ('', ''.join(msg_body), AT_END)
         return parts
@@ -755,14 +758,14 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             eta = '?'
         else:
             if self._microseconds:
-                eta = text_type(timedelta(seconds=self._est_seconds_left))
+                eta = str(timedelta(seconds=self._est_seconds_left))
             else:
-                eta = text_type(timedelta(seconds=int(self._est_seconds_left)))
+                eta = str(timedelta(seconds=int(self._est_seconds_left)))
 
         if self._microseconds:
-            total = text_type(timedelta(seconds=self._total_seconds))
+            total = str(timedelta(seconds=self._total_seconds))
         else:
-            total = text_type(timedelta(seconds=int(self._total_seconds)))
+            total = str(timedelta(seconds=int(self._total_seconds)))
 
         before, fmtstr, after = self._msg_fmtstr
 
