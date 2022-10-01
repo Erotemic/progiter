@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
 """
 pytest tests/test_progiter.py
 """
-# from io import StringIO
-from six.moves import cStringIO as StringIO
+from io import StringIO
 from xdoctest.utils import strip_ansi
 from xdoctest.utils import CaptureStdout
 from progiter import ProgIter
@@ -98,7 +96,6 @@ def test_progiter():
           'insignificant')
     print('this is verbosity mode verbose=0')
     sequence = (is_prime(n) for n in range(N0, N))
-    # with ub.Timer('demo0'):
     if True:
         psequence = ProgIter(sequence, total=total, desc='demo0',
                              enabled=False)
@@ -108,7 +105,6 @@ def test_progiter():
     print('Demo #1: progress is shown by default in the same line')
     print('this is verbosity mode verbose=1')
     sequence = (is_prime(n) for n in range(N0, N))
-    # with ub.Timer('demo1'):
     if True:
         psequence = ProgIter(sequence, total=total, desc='demo1')
         list(psequence)
@@ -120,7 +116,6 @@ def test_progiter():
     print('Progress is only printed as needed')
     print('Notice the adjustment behavior of the print frequency')
     print('this is verbosity mode verbose=2')
-    # with ub.Timer('demo2'):
     if True:
         sequence = (is_prime(n) for n in range(N0, N))
         psequence = ProgIter(sequence, total=total, clearline=False,
@@ -133,7 +128,6 @@ def test_progiter():
     print('Demo #3: Adjustments can be turned off to give constant feedback')
     print('this is verbosity mode verbose=3')
     sequence = (is_prime(n) for n in range(N0, N))
-    # with ub.Timer('demo3'):
     if True:
         psequence = ProgIter(sequence, total=total, adjust=False,
                              clearline=False, freq=100, desc='demo3')
@@ -421,9 +415,5 @@ def test_tqdm_compatibility():
 
 
 if __name__ == '__main__':
-    r"""
-    CommandLine:
-        pytest tests/test_progiter.py
-    """
     import pytest
     pytest.main([__file__])
