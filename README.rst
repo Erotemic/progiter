@@ -6,13 +6,13 @@ ProgIter
 
 ProgIter lets you measure and print the progress of an iterative process. This
 can be done either via an iterable interface or using the manual API. Using the
-iterable inferface is most common.
+iterable interface is most common.
 
 .. image:: https://i.imgur.com/HoJJYzd.gif
    :height: 300px
    :align: left
 
-ProgIter was originally developed independantly of ``tqdm``, but the newer
+ProgIter was originally developed independently of ``tqdm``, but the newer
 versions of this library have been designed to be compatible with tqdm-API.
 ``ProgIter`` is now a (mostly) drop-in alternative to tqdm_. The ``tqdm``
 library may be more appropriate in some cases. *The main advantage of ``ProgIter``
@@ -35,7 +35,7 @@ The basic usage of ProgIter is simple and intuitive. Just wrap a python
 iterable.  The following example wraps a ``range`` iterable and prints reported
 progress to stdout as the iterable is consumed. The ``ProgIter`` object accepts
 various keyword arguments to modify the details of how progress is measured and
-reported. See API documentation of the ``ProgIter`` classs here:
+reported. See API documentation of the ``ProgIter`` class here:
 https://progiter.readthedocs.io/en/latest/progiter.progiter.html#progiter.progiter.ProgIter
 
 Note that by default ProgIter reports information about iteration-rate,
@@ -79,7 +79,7 @@ the ProgIter API. This is done as follows:
 When working with ProgIter in either iterable or manual mode you can use the
 ``prog.ensure_newline`` method to guarantee that the next call you make to stdout
 will start on a new line. You can also use the ``prog.set_extra`` method to
-update a dynamci "extra" message that is shown in the formatted output. The
+update a dynamic "extra" message that is shown in the formatted output. The
 following example demonstrates this.
 
 
@@ -107,7 +107,7 @@ following example demonstrates this.
 Installation
 ------------
 
-ProgIter can be easilly installed via `pip`. 
+ProgIter can be easily installed via `pip`. 
 
 .. code:: bash
 
