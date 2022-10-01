@@ -5,11 +5,14 @@ We are currently working on porting this changelog to the specifications in
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Version: 0.1.5] - Unreleased
+## [Version: 1.0.0] - Unreleased
 
 
 ### Changed
 * `ProgIter.format_message` return value has changed.
+
+### Removed
+* Support for Python <= 3.6
 
 ### Fixed
 * Issue 21
