@@ -1,8 +1,5 @@
 |GithubActions| |ReadTheDocs| |Pypi| |Downloads| |Codecov| 
 
-.. foo
-    |CircleCI| |Appveyor| 
-    |GithubActions| |CircleCI| |Appveyor| |Codecov| |Pypi| |Downloads| |ReadTheDocs|
 
 ProgIter
 ========
