@@ -424,7 +424,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._cursor_at_newline = True
 
         self._prev_msg_len = 0  # used to ensure lines are fully cleared
-        self._fix_issue_21 = True
 
         self._reset_internals()
 
@@ -667,16 +666,16 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         Example:
             >>> from progiter import ProgIter
             >>> self = ProgIter(show_times=True)
-            >>> print(self._build_message_template().strip())
-            {desc} {iter_idx:4d}/?...{extra} rate={rate:{rate_format}} Hz, total={total} ...
+            >>> print(self._build_message_template()[1].strip())
+            {desc} {iter_idx:4d}/?...{extra} rate={rate:{rate_format}} Hz, total={total}...
 
             >>> self = ProgIter(show_times=False)
-            >>> print(self._build_message_template().strip())
+            >>> print(self._build_message_template()[1].strip())
             {desc} {iter_idx:4d}/?...{extra}
 
             >>> self = ProgIter(total=0, show_times=True)
-            >>> print(self._build_message_template().strip())
-            {desc} {iter_idx:1d}/0...{extra} rate={rate:{rate_format}} Hz, total={total} ...
+            >>> print(self._build_message_template()[1].strip())
+            {desc} {iter_idx:1d}/0...{extra} rate={rate:{rate_format}} Hz, total={total}...
         """
         from math import log10, floor
         length_unknown = self.total is None or self.total < 0
@@ -720,19 +719,11 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 (', wall={wall}'),
             ]
 
-        if self._fix_issue_21:
-            if self.clearline:
-                parts = (CLEAR_BEFORE, ''.join(msg_body), CLEAR_AFTER)
-            else:
-                parts = ('', ''.join(msg_body), AT_END)
-            return parts
+        if self.clearline:
+            parts = (CLEAR_BEFORE, ''.join(msg_body), CLEAR_AFTER)
         else:
-            if self.clearline:
-                msg_body = [CLEAR_BEFORE] + msg_body + [CLEAR_AFTER]
-            else:
-                msg_body = msg_body + [AT_END]
-            msg_fmtstr_time = ''.join(msg_body)
-            return msg_fmtstr_time
+            parts = ('', ''.join(msg_body), AT_END)
+        return parts
 
     def format_message(self):
         r"""
@@ -741,23 +732,23 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         Example:
             >>> self = ProgIter(clearline=False, show_times=False)
-            >>> print(repr(self.format_message()))
-            '    0/?... \n'
+            >>> print(repr(self.format_message()[1]))
+            '    0/?... '
             >>> self.begin()
             >>> self.step()
-            >>> print(repr(self.format_message()))
-            ' 1/?... \n'
+            >>> print(repr(self.format_message()[1]))
+            ' 1/?... '
 
         Example:
             >>> self = ProgIter(chunksize=10, total=100, clearline=False,
             >>>                 show_times=False, microseconds=True)
             >>> # hack, microseconds=True for coverage, needs real test
-            >>> print(repr(self.format_message()))
-            ' 0.00% of 10x100... \n'
+            >>> print(repr(self.format_message()[1]))
+            ' 0.00% of 10x100... '
             >>> self.begin()
             >>> self.update()  # tqdm alternative to step
-            >>> print(repr(self.format_message()))
-            ' 1.00% of 10x100... \n'
+            >>> print(repr(self.format_message()[1]))
+            ' 1.00% of 10x100... '
         """
         from datetime import timedelta
         if self._est_seconds_left is None:
@@ -773,10 +764,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         else:
             total = text_type(timedelta(seconds=int(self._total_seconds)))
 
-        if self._fix_issue_21:
-            before, fmtstr, after = self._msg_fmtstr
-        else:
-            fmtstr = self._msg_fmtstr
+        before, fmtstr, after = self._msg_fmtstr
 
         # similar to tqdm.format_meter
         if self.chunksize and self.total:
@@ -800,10 +788,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 extra=self.extra,
             )
 
-        if self._fix_issue_21:
-            return before, msg, after
-        else:
-            return msg
+        return before, msg, after
 
     def ensure_newline(self):
         """
@@ -843,18 +828,14 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         Writes current progress to the output stream
         """
-        if self._fix_issue_21:
-            before, msg, after = self.format_message()
-            msg_len = len(msg)  # TODO account for unicode
-            if self.clearline:
-                padding = self._prev_msg_len - msg_len
-                if padding > 0:
-                    msg = msg + ' ' * padding
-            self._write(''.join([before, msg, after]))
-            self._prev_msg_len = msg_len
-        else:
-            msg = self.format_message()
-            self._write(msg)
+        before, msg, after = self.format_message()
+        msg_len = len(msg)  # TODO account for unicode
+        if self.clearline:
+            padding = self._prev_msg_len - msg_len
+            if padding > 0:
+                msg = msg + ' ' * padding
+        self._write(''.join([before, msg, after]))
+        self._prev_msg_len = msg_len
         self._tryflush()
         self._cursor_at_newline = not self.clearline
 
