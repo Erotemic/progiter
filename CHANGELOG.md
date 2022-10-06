@@ -5,8 +5,14 @@ We are currently working on porting this changelog to the specifications in
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Version: 1.0.0] - Unreleased
+## [Version: 1.0.1] - Unreleased 
 
+### Fixed
+* `ProgIter.format_message` returned to its original signature. The
+  `ProgIter.format_message_parts` now contains the new signature.
+
+
+## [Version: 1.0.0] - Released 2022-10-01
 
 ### Changed
 * `ProgIter.format_message` return value has changed.
