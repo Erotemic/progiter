@@ -267,10 +267,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             How many iterations to wait between messages.
             Defaults to 1.
 
-        adjust (bool):
-            if True freq is adjusted based on time_thresh
-            Defaults to True.
-
         eta_window (int):
             number of previous measurements to use in eta calculation, default=64
 
