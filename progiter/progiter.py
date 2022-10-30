@@ -250,7 +250,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     ProgIter is an alternative to `tqdm`. ProgIter implements much of the
     tqdm-API.  The main difference between `ProgIter` and `tqdm` is that
-    ProgIter does not use threading where as `tqdm` does.
+    ProgIter does not use threading whereas `tqdm` does.
 
     Attributes:
         iterable (List | Iterable):
@@ -321,7 +321,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     Note:
         ProgIter is an alternative to `tqdm`.  The main difference between
-        `ProgIter` and `tqdm` is that ProgIter does not use threading where as
+        `ProgIter` and `tqdm` is that ProgIter does not use threading whereas
         `tqdm` does.  `ProgIter` is simpler than `tqdm` and thus more stable in
         certain circumstances.
 
@@ -523,7 +523,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._iter_idx = self.initial
         self._last_idx = self.initial - 1
         # now time is actually not right now
-        # now refers the the most recent measurement
+        # now refers to the most recent measurement
         # last refers to the measurement before that
         self._now_idx = self.initial
         self._now_time = 0
@@ -544,7 +544,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         Initializes information used to measure progress
 
         This only needs to be used if this ProgIter is not wrapping an iterable.
-        Does nothing if the this ProgIter is disabled.
+        Does nothing if this ProgIter is disabled.
 
         Returns:
             ProgIter:
@@ -582,7 +582,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         Signals that iteration has ended and displays the final message.
 
         This only needs to be used if this ProgIter is not wrapping an
-        iterable.  Does nothing if the this ProgIter object is disabled or has
+        iterable.  Does nothing if this ProgIter object is disabled or has
         already finished.
         """
         if not self.enabled or self.finished:
