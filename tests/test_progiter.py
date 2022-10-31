@@ -1,11 +1,15 @@
 """
 pytest tests/test_progiter.py
 """
-from io import StringIO
-from xdoctest.utils import strip_ansi
-from xdoctest.utils import CaptureStdout
-from progiter import ProgIter
 import sys
+from contextlib import contextmanager
+from io import StringIO
+from unittest.mock import patch
+
+from xdoctest.utils import CaptureStdout
+from xdoctest.utils import strip_ansi
+
+from progiter import ProgIter
 
 
 def test_rate_format_string():
@@ -177,11 +181,11 @@ def time_progiter_overhead():
     import textwrap
     setup = textwrap.dedent(
         '''
-        from sklearn.externals.progiter import ProgIter
+        from progiter import ProgIter
         import numpy as np
         import time
         from six.moves import StringIO, range
-        import utool as ut
+        # import utool as ut
         N = 500
         file = StringIO()
         rng = np.random.RandomState(42)
@@ -214,27 +218,38 @@ def time_progiter_overhead():
                 yield item
                 if time.time() < 100:
                     pass
+
+        def step_through(prog):
+            prog.begin()
+            for item in range(prog.total):
+                prog.step()
+                yield item
+            prog.end()
         '''
     )
     statements = {
-        'baseline'       : '[{work} for n in range(N)]',
-        'creation'       : 'ProgIter(range(N))',
-        'minwrap1'       : '[{work} for n in minimal_wraper1(range(N))]',
-        'minwrap2'       : '[{work} for n in minimal_wraper2(range(N))]',
-        'minwrap3'       : '[{work} for n in minimal_wraper3(range(N))]',
-        'minwrap4'       : '[{work} for n in minwrap4(range(N))]',
-        'minwrap5'       : '[{work} for n in minwrap5(range(N))]',
-        '(sk-disabled)'  : '[{work} for n in ProgIter(range(N), enabled=False, file=file)]',  # NOQA
-        '(sk-plain)'     : '[{work} for n in ProgIter(range(N), file=file)]',  # NOQA
-        '(sk-freq)'      : '[{work} for n in ProgIter(range(N), file=file, freq=100)]',  # NOQA
-        '(sk-no-adjust)' : '[{work} for n in ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
-        '(sk-high-freq)' : '[{work} for n in ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
+        'baseline'         : '[{work} for n in range(N)]',
+        'creation'         : 'ProgIter(range(N))',
+        'minwrap1'         : '[{work} for n in minimal_wraper1(range(N))]',
+        'minwrap2'         : '[{work} for n in minimal_wraper2(range(N))]',
+        'minwrap3'         : '[{work} for n in minimal_wraper3(range(N))]',
+        'minwrap4'         : '[{work} for n in minwrap4(range(N))]',
+        'minwrap5'         : '[{work} for n in minwrap5(range(N))]',
+        '(sk-disabled)'    : '[{work} for n in ProgIter(range(N), enabled=False, file=file)]',  # NOQA
+        '(sk-plain)'       : '[{work} for n in ProgIter(range(N), file=file)]',  # NOQA
+        '(sk-freq)'        : '[{work} for n in ProgIter(range(N), file=file, freq=100)]',  # NOQA
+        '(sk-no-adjust)'   : '[{work} for n in ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
+        '(sk-high-freq)'   : '[{work} for n in ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
 
-        # '(ut-disabled)'  : '[{work} for n in ut.ProgIter(range(N), enabled=False, file=file)]',    # NOQA
-        # '(ut-plain)'     : '[{work} for n in ut.ProgIter(range(N), file=file)]',  # NOQA
-        # '(ut-freq)'      : '[{work} for n in ut.ProgIter(range(N), freq=100, file=file)]',  # NOQA
-        # '(ut-no-adjust)' : '[{work} for n in ut.ProgIter(range(N), freq=200, adjust=False, file=file)]',  # NOQA
-        # '(ut-high-freq)' : '[{work} for n in ut.ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
+        # '(ut-disabled)'    : '[{work} for n in ut.ProgIter(range(N), enabled=False, file=file)]',    # NOQA
+        # '(ut-plain)'       : '[{work} for n in ut.ProgIter(range(N), file=file)]',  # NOQA
+        # '(ut-freq)'        : '[{work} for n in ut.ProgIter(range(N), freq=100, file=file)]',  # NOQA
+        # '(ut-no-adjust)'   : '[{work} for n in ut.ProgIter(range(N), freq=200, adjust=False, file=file)]',  # NOQA
+        # '(ut-high-freq)'   : '[{work} for n in ut.ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
+
+        '(step-plain)'      : '[{work} for n in step_through(ProgIter(total=N, file=file))]',  # NOQA
+        '(step-freq)'      : '[{work} for n in step_through(ProgIter(total=N, file=file, freq=100))]',  # NOQA
+        '(step-no-adjust)' : '[{work} for n in step_through(ProgIter(total=N, file=file, adjust=False, freq=200))]',  # NOQA
     }
     # statements = {
     #     'calc_baseline': '[vec1.dot(vec2.T) for n in range(M)]',  # NOQA
@@ -258,8 +273,8 @@ def time_progiter_overhead():
         secs = timeit.timeit(stmt.format(work=work), setup, number=number)
         timeings[key] = secs / number
 
-    # import utool as ut
-    # print(ut.align(ut.repr4(timeings, precision=8), ':'))
+    import utool as ut
+    print(ut.align(ut.repr4(timeings, precision=8), ':'))
 
 
 def test_unknown_total():
@@ -412,6 +427,60 @@ def test_tqdm_compatibility():
         prog = ProgIter(show_times=False)
         prog.set_postfix_str('bar baz', refresh=False)
     assert 'bar baz' not in cap.text.strip()
+
+
+class IntObject:
+    def __init__(self):
+        self.n = 0
+
+    def inc(self, *args, **kwargs):
+        self.n += 1
+
+
+@contextmanager
+def _fake_time():
+    t = IntObject()  # fake time in seconds
+    with patch('progiter.progiter.default_timer', side_effect=lambda: t.n):
+        yield t
+
+
+@contextmanager
+def _message_count_only():
+    cnt = IntObject()
+    with patch.object(ProgIter, 'display_message', side_effect=cnt.inc):
+        yield cnt
+
+
+def test_adjust_binds_updates_to_time_thresh():
+    with _fake_time() as t, _message_count_only() as cnt:
+        prog = ProgIter(range(1000), enabled=True, adjust=True, time_thresh=1.0,
+                        rel_adjust_limit=1000000.0)
+        it = iter(prog)
+        # Few fast updates at the beginning
+        for i in range(10):
+            next(it)
+            t.n += 0.1
+        # Followed by some extremely slow updates
+        for i in range(10):
+            next(it)
+            t.n += 1000
+        # Outputs should not get stuck at the few fast updates
+        assert cnt.n > 8
+
+    with _fake_time() as t, _message_count_only() as cnt:
+        prog = ProgIter(range(1000), enabled=True, adjust=True, time_thresh=1.0,
+                        rel_adjust_limit=1000000.0)
+        it = iter(prog)
+        # Few slow updates at the beginning
+        for i in range(10):
+            next(it)
+            t.n += 100
+        # Followed by a ton of extremely fast updates
+        for i in range(990):
+            next(it)
+            t.n += 0.00001
+        # Outputs should not spam the screen with messages
+        assert cnt.n < 20
 
 
 if __name__ == '__main__':
