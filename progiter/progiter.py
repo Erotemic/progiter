@@ -250,7 +250,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     ProgIter is an alternative to `tqdm`. ProgIter implements much of the
     tqdm-API.  The main difference between `ProgIter` and `tqdm` is that
-    ProgIter does not use threading where as `tqdm` does.
+    ProgIter does not use threading whereas `tqdm` does.
 
     Attributes:
         iterable (List | Iterable):
@@ -266,10 +266,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         freq (int):
             How many iterations to wait between messages.
             Defaults to 1.
-
-        adjust (bool):
-            if True freq is adjusted based on time_thresh
-            Defaults to True.
 
         eta_window (int):
             number of previous measurements to use in eta calculation, default=64
@@ -325,7 +321,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
     Note:
         ProgIter is an alternative to `tqdm`.  The main difference between
-        `ProgIter` and `tqdm` is that ProgIter does not use threading where as
+        `ProgIter` and `tqdm` is that ProgIter does not use threading whereas
         `tqdm` does.  `ProgIter` is simpler than `tqdm` and thus more stable in
         certain circumstances.
 
@@ -470,15 +466,31 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         if not self.started:
             self.begin()
         # Wrap input sequence in a generator
-        for self._iter_idx, item in enumerate(self.iterable, start=self.initial + 1):
-            yield item
-            # Call the body of step to reduce overyead
-            # self.step(0)  # inc is 0 because we already updated
-            if (self._iter_idx) % self.freq == 0:
-                # update progress information every so often
-                self._update_measurements()
-                self._update_estimates()
-                self.display_message()
+        gen = enumerate(self.iterable, start=self.initial + 1)
+        # Iterating is performance sensitive, so separate both cases - where
+        # 'freq' is used and checks can be fast, and where 'adjust' is used and
+        # checks need more calculation. This is worth duplicating code for.
+        if self.adjust:
+            for self._iter_idx, item in gen:
+                yield item
+
+                between_idx = (self._iter_idx - self._now_idx)
+                need_display = between_idx >= self.freq
+
+                # No clue how much time has passed, the frequency may be way off.
+                # If 'freq' is too large, checking time is necessary to notice it.
+                if not need_display:
+                    between_time = default_timer() - self._now_time
+                    need_display = between_time >= self.time_thresh
+
+                if need_display:
+                    # update progress information every so often
+                    self._update_and_display_message()
+        else:
+            for self._iter_idx, item in gen:
+                yield item
+                if self._iter_idx % self.freq == 0:  # very low overhead
+                    self._update_and_display_message()
         self.end()
 
     def step(self, inc=1, force=False):
@@ -507,12 +519,18 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         if not self.enabled:
             return
+
         self._iter_idx += inc
-        _between_idx = (self._iter_idx - self._now_idx)
-        if force or _between_idx >= self.freq:
-            self._update_measurements()
-            self._update_estimates()
-            self.display_message()
+
+        between_idx = (self._iter_idx - self._now_idx)
+        need_display = force or between_idx >= self.freq
+
+        if self.adjust and not need_display:
+            between_time = default_timer() - self._now_time
+            need_display = between_time >= self.time_thresh
+
+        if need_display:
+            self._update_and_display_message()
 
     def _reset_internals(self):
         """
@@ -527,13 +545,11 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._iter_idx = self.initial
         self._last_idx = self.initial - 1
         # now time is actually not right now
-        # now refers the the most recent measurement
+        # now refers to the most recent measurement
         # last refers to the measurement before that
         self._now_idx = self.initial
         self._now_time = 0
         self._between_count = -1
-        self._max_between_time = -1.0
-        self._max_between_count = -1.0
         self._iters_per_second = 0.0
         self._update_message_template()
 
@@ -548,7 +564,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         Initializes information used to measure progress
 
         This only needs to be used if this ProgIter is not wrapping an iterable.
-        Does nothing if the this ProgIter is disabled.
+        Does nothing if this ProgIter is disabled.
 
         Returns:
             ProgIter:
@@ -586,15 +602,14 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         Signals that iteration has ended and displays the final message.
 
         This only needs to be used if this ProgIter is not wrapping an
-        iterable.  Does nothing if the this ProgIter object is disabled or has
+        iterable.  Does nothing if this ProgIter object is disabled or has
         already finished.
         """
         if not self.enabled or self.finished:
             return
         # Write the final progress line if it was not written in the loop
         if self._iter_idx != self._now_idx:
-            self._update_measurements()
-            self._update_estimates()
+            self._update_all_calculations()
             self._est_seconds_left = 0
             self.display_message()
         self.ensure_newline()
@@ -605,17 +620,12 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # Adjust frequency so the next print will not happen until
         # approximately `time_thresh` seconds have passed as estimated by
         # iter_idx.
-        eps = 1E-9
-        self._max_between_time = max(self._max_between_time,
-                                     self._between_time)
-        self._max_between_time = max(self._max_between_time, eps)
-        self._max_between_count = max(self._max_between_count,
-                                      self._between_count)
 
         # If progress was uniform and all time estimates were
         # perfect this would be the new freq to achieve self.time_thresh
-        new_freq = int(self.time_thresh * self._max_between_count /
-                       self._max_between_time)
+        eps = 1E-9
+        new_freq = int(self.time_thresh * self._between_count /
+                       max(eps, self._between_time))
         # But things are not perfect. So, don't make drastic changes
         rel_limit = self.rel_adjust_limit
         max_freq = int(self.freq * rel_limit)
@@ -627,7 +637,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         update current measurements and estimated of time and progress
         """
         self._last_idx = self._now_idx
-        self._last_time  = self._now_time
+        self._last_time = self._now_time
 
         self._now_idx = self._iter_idx
         self._now_time = default_timer()
@@ -636,7 +646,10 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._between_count = self._now_idx - self._last_idx
         self._total_seconds = self._now_time - self._start_time
 
-        # Record that measures were updated
+        # Adjust frequency to stay within time_thresh
+        if self.adjust and (self._between_time < self.time_thresh or
+                            self._between_time > self.time_thresh * 2.0):
+            self._adjust_frequency()
 
     def _update_estimates(self):
         # Estimate rate of progress
@@ -653,13 +666,15 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             # Estimate time remaining if total is given
             iters_left = self.total - self._now_idx
             est_eta = iters_left / self._iters_per_second
-            self._est_seconds_left  = est_eta
+            self._est_seconds_left = est_eta
 
-        # Adjust frequency if printing too quickly
-        # so progress does not slow down actual function
-        if self.adjust and (self._between_time < self.time_thresh or
-                            self._between_time > self.time_thresh * 2.0):
-            self._adjust_frequency()
+    def _update_all_calculations(self):
+        self._update_measurements()
+        self._update_estimates()
+
+    def _update_and_display_message(self):
+        self._update_all_calculations()
+        self.display_message()
 
     def _update_message_template(self):
         self._msg_fmtstr = self._build_message_template()
