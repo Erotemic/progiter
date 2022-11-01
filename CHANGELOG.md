@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 * `time_thresh` is now respected when calculating dynamic display updates
 
 
-## [Version: 1.0.1] - Unreleased 
+## [Version: 1.0.1] - Released 2022-10-07 
 
 ### Fixed
 * `ProgIter.format_message` returned to its original signature. The
