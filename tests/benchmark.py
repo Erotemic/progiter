@@ -1,5 +1,4 @@
-import utool as ut
-
+import ubelt as ub
 from progiter import ProgIter
 
 
@@ -12,8 +11,7 @@ def time_progiter_overhead():
         from progiter import ProgIter
         import numpy as np
         import time
-        from six.moves import StringIO, range
-        # import utool as ut
+        from six.moves import StringIO
         N = 500
         file = StringIO()
         rng = np.random.RandomState(42)
@@ -69,21 +67,10 @@ def time_progiter_overhead():
         '(sk-no-adjust)'   : '[{work} for n in ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
         '(sk-high-freq)'   : '[{work} for n in ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
 
-        # '(ut-disabled)'    : '[{work} for n in ut.ProgIter(range(N), enabled=False, file=file)]',    # NOQA
-        # '(ut-plain)'       : '[{work} for n in ut.ProgIter(range(N), file=file)]',  # NOQA
-        # '(ut-freq)'        : '[{work} for n in ut.ProgIter(range(N), freq=100, file=file)]',  # NOQA
-        # '(ut-no-adjust)'   : '[{work} for n in ut.ProgIter(range(N), freq=200, adjust=False, file=file)]',  # NOQA
-        # '(ut-high-freq)'   : '[{work} for n in ut.ProgIter(range(N), file=file, adjust=False, freq=200)]',  # NOQA
-
         '(step-plain)'      : '[{work} for n in step_through(ProgIter(total=N, file=file))]',  # NOQA
         '(step-freq)'      : '[{work} for n in step_through(ProgIter(total=N, file=file, freq=100))]',  # NOQA
         '(step-no-adjust)' : '[{work} for n in step_through(ProgIter(total=N, file=file, adjust=False, freq=200))]',  # NOQA
     }
-    # statements = {
-    #     'calc_baseline': '[vec1.dot(vec2.T) for n in range(M)]',  # NOQA
-    #     'calc_plain': '[vec1.dot(vec2.T) for n in ProgIter(range(M), file=file)]',  # NOQA
-    #     'calc_plain_ut': '[vec1.dot(vec2.T) for n in ut.ProgIter(range(M), file=file)]',  # NOQA
-    # }
     timeings = {}
 
     work_strs = [
@@ -92,7 +79,6 @@ def time_progiter_overhead():
         'n % 10 == 0',
     ]
     work = work_strs[0]
-    # work = work_strs[1]
 
     number = 10000
     prog = ProgIter(desc='timing', adjust=True)
@@ -101,7 +87,7 @@ def time_progiter_overhead():
         secs = timeit.timeit(stmt.format(work=work), setup, number=number)
         timeings[key] = secs / number
 
-    print(ut.align(ut.repr4(timeings, precision=8), ':'))
+    print(ub.repr2(timeings, precision=8, align=':'))
 
 
 if __name__ == '__main__':
