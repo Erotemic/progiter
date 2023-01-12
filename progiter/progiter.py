@@ -133,12 +133,6 @@ def _infer_length(iterable):
         return hint
 
 
-class _GottaGoFast(Exception):
-    """
-    Used to break out of a slow loop and continue using a fast one.
-    """
-
-
 class _TQDMCompat(object):
     """
     Base class for ProgIter that implements a restricted TQDM Compatibility API
@@ -492,40 +486,36 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             use_fast_path = False
 
             homogeneous = self.homogeneous
-            try:
-                if homogeneous == 'auto':
-                    homogeneous = False
-                    # Take a few steps in the slow path and then check to see
-                    # if we should continue or do go down the fast path.
-                    num_initial_steps = 5
+            if homogeneous == 'auto':
+                homogeneous = False
+                # Take a few steps in the slow path and then check to see
+                # if we should continue or do go down the fast path.
+                num_initial_steps = 5
 
-                    # A call to time is 50ns, we can accept the overhead if it
-                    # is only .01% of the total loop time
-                    overhead_threshold = 50e-9 * 10_000
+                # A call to time is 50ns, we can accept the overhead if it
+                # is only .01% of the total loop time
+                overhead_threshold = 50e-9 * 10_000
 
-                    _check_times = []
-                    for self._iter_idx, item in islice(gen, 0, num_initial_steps):
-                        yield item
-                        self._slow_path_step_body()
-                        _check_times.append(self._between_time)
+                _check_times = []
+                for self._iter_idx, item in islice(gen, 0, num_initial_steps):
+                    yield item
+                    self._slow_path_step_body()
+                    _check_times.append(self._between_time)
 
-                    if len(_check_times) > 1:
-                        # smallest, *middle, slowest = sorted(_check_times)
-                        slowest = max(_check_times)
-                        # We are moving fast, take the faster path
-                        if slowest < overhead_threshold:
-                            homogeneous = True
+                if len(_check_times) > 1:
+                    # smallest, *middle, slowest = sorted(_check_times)
+                    slowest = max(_check_times)
+                    # We are moving fast, take the faster path
+                    if slowest < overhead_threshold:
+                        homogeneous = True
 
-                if homogeneous:
-                    raise _GottaGoFast
-
+            if homogeneous:
+                use_fast_path = True
+            else:
                 # Slow path where we do checks every iteration.
                 for self._iter_idx, item in gen:
                     yield item
                     self._slow_path_step_body()
-
-            except _GottaGoFast:
-                use_fast_path = True
 
         if use_fast_path:
             for self._iter_idx, item in gen:
