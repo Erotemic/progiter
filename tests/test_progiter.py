@@ -352,7 +352,7 @@ def _message_count_only():
 def test_adjust_binds_updates_to_time_thresh():
     with _fake_time() as t, _message_count_only() as cnt:
         prog = ProgIter(range(1000), enabled=True, adjust=True, time_thresh=1.0,
-                        rel_adjust_limit=1000000.0)
+                        rel_adjust_limit=1000000.0, homogeneous=False)
         it = iter(prog)
         # Few fast updates at the beginning
         for i in range(10):
@@ -367,7 +367,7 @@ def test_adjust_binds_updates_to_time_thresh():
 
     with _fake_time() as t, _message_count_only() as cnt:
         prog = ProgIter(range(1000), enabled=True, adjust=True, time_thresh=1.0,
-                        rel_adjust_limit=1000000.0)
+                        rel_adjust_limit=1000000.0, homogeneous=False)
         it = iter(prog)
         # Few slow updates at the beginning
         for i in range(10):

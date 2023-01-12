@@ -132,6 +132,12 @@ def _infer_length(iterable):
         return hint
 
 
+class _GottaGoFast(Exception):
+    """
+    Used to break out of a slow loop and continue using a fast one.
+    """
+
+
 class _TQDMCompat(object):
     """
     Base class for ProgIter that implements a restricted TQDM Compatibility API
@@ -314,6 +320,13 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             2: enabled=True with clearline=False and adjust=True,
             3: enabled=True with clearline=False and adjust=False
 
+        homogeneous (bool | str):
+            Indicate if the iterable is likely to take a uniform or homogeneous
+            amount of time per iteration. When True we can enable a speed
+            optimization. When False, the time estimates are more accurate.
+            Default to "auto", which attempts to determine if it is safe to use
+            True. Has no effect if ``adjust`` is False.
+
     Note:
         Either use ProgIter in a with statement or call prog.end() at the end
         of the computation if there is a possibility that the entire iterable
@@ -344,7 +357,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                  initial=0, eta_window=64, clearline=True, adjust=True,
                  time_thresh=2.0, show_times=True, show_wall=False,
                  enabled=True, verbose=None, stream=None, chunksize=None,
-                 rel_adjust_limit=4.0, **kwargs):
+                 rel_adjust_limit=4.0, homogeneous='auto', **kwargs):
         """
         Note:
             See attributes for arg information
@@ -409,6 +422,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.started = False
         self.finished = False
 
+        self.homogeneous = homogeneous
+
         # indicates if the cursor is currently at the start of a line (True) or
         # if characters have been written with no newline yet.
         self._cursor_at_newline = True
@@ -470,28 +485,73 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # Iterating is performance sensitive, so separate both cases - where
         # 'freq' is used and checks can be fast, and where 'adjust' is used and
         # checks need more calculation. This is worth duplicating code for.
+
+        use_fast_path = True
         if self.adjust:
-            for self._iter_idx, item in gen:
-                yield item
+            use_fast_path = False
 
-                between_idx = (self._iter_idx - self._now_idx)
-                need_display = between_idx >= self.freq
+            homogeneous = self.homogeneous
+            try:
+                if homogeneous == 'auto':
+                    homogeneous = False
+                    # Take a few steps in the slow path and then check to see
+                    # if we should continue or do go down the fast path.
+                    num_initial_steps = 5
 
-                # No clue how much time has passed, the frequency may be way off.
-                # If 'freq' is too large, checking time is necessary to notice it.
-                if not need_display:
-                    between_time = default_timer() - self._now_time
-                    need_display = between_time >= self.time_thresh
+                    # A call to time is 50ns, we can accept the overhead if it
+                    # is only .01% of the total loop time
+                    overhead_threshold = 50e-9 * 10_000
 
-                if need_display:
-                    # update progress information every so often
-                    self._update_and_display_message()
-        else:
+                    _check_times = []
+                    for (self._iter_idx, item), _ in zip(gen, range(num_initial_steps)):
+                        yield item
+                        self._slow_path_step_body()
+                        _check_times.append(self._between_time)
+
+                    if len(_check_times) > 1:
+                        # smallest, *middle, slowest = sorted(_check_times)
+                        slowest = max(_check_times)
+                        # We are moving fast, take the faster path
+                        if slowest < overhead_threshold:
+                            homogeneous = True
+
+                if homogeneous:
+                    raise _GottaGoFast
+
+                # Slow path where we do checks every iteration.
+                for self._iter_idx, item in gen:
+                    yield item
+                    self._slow_path_step_body()
+
+            except _GottaGoFast:
+                use_fast_path = True
+            except StopIteration:
+                ...
+
+        if use_fast_path:
             for self._iter_idx, item in gen:
                 yield item
                 if self._iter_idx % self.freq == 0:  # very low overhead
                     self._update_and_display_message()
+
         self.end()
+
+    def _slow_path_step_body(self, force=False):
+        # It may be more efficient to duplicate or optimize this as in-line
+        # byte code. Unsure. Cython might be helpful.
+        between_idx = (self._iter_idx - self._now_idx)
+        need_display = force or between_idx >= self.freq
+
+        # No clue how much time has passed, the frequency may be way off.
+        # If 'freq' is too large, checking time is necessary to notice it.
+        if self.adjust and not need_display:
+            self._update_all_calculations()
+            need_display = self._between_time >= self.time_thresh
+            if need_display:
+                self.display_message()
+        elif need_display:
+            # update progress information every so often
+            self._update_and_display_message()
 
     def step(self, inc=1, force=False):
         """
@@ -521,16 +581,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             return
 
         self._iter_idx += inc
-
-        between_idx = (self._iter_idx - self._now_idx)
-        need_display = force or between_idx >= self.freq
-
-        if self.adjust and not need_display:
-            between_time = default_timer() - self._now_time
-            need_display = between_time >= self.time_thresh
-
-        if need_display:
-            self._update_and_display_message()
+        self._slow_path_step_body(force=force)
 
     def _reset_internals(self):
         """

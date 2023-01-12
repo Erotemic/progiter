@@ -8,6 +8,12 @@ ProgIter lets you measure and print the progress of an iterative process. This
 can be done either via an iterable interface or using the manual API. Using the
 iterable interface is most common.
 
+ProgIter is unthreaded. This differentiates it from tqdm and rich, which are
+great, threaded progress indicators have different tradeoffs. Single threaded
+progress gives you synchronous uncluttered logging, increased stability, and
+unintuitively speed. Meanwhile threaded progress bars are more responsive and
+can look prettier (unless you try to log stdout to disk).
+
 .. image:: https://i.imgur.com/HoJJYzd.gif
    :height: 300px
    :align: left
