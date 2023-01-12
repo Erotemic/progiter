@@ -497,7 +497,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 overhead_threshold = 50e-9 * 10_000
 
                 slowest = 0
-                for self._iter_idx, item in islice(gen, 0, num_initial_steps):
+                for self._iter_idx, item in islice(gen, num_initial_steps):
                     yield item
                     self._slow_path_step_body()
                     slowest = max(slowest, self._between_time)
