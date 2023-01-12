@@ -496,18 +496,15 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 # is only .01% of the total loop time
                 overhead_threshold = 50e-9 * 10_000
 
-                _check_times = []
+                slowest = 0
                 for self._iter_idx, item in islice(gen, 0, num_initial_steps):
                     yield item
                     self._slow_path_step_body()
-                    _check_times.append(self._between_time)
+                    slowest = max(slowest, self._between_time)
 
-                if len(_check_times) > 1:
-                    # smallest, *middle, slowest = sorted(_check_times)
-                    slowest = max(_check_times)
-                    # We are moving fast, take the faster path
-                    if slowest < overhead_threshold:
-                        homogeneous = True
+                # We are moving fast, take the faster path
+                if slowest < overhead_threshold:
+                    homogeneous = True
 
             if homogeneous:
                 use_fast_path = True
