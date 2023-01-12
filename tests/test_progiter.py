@@ -381,6 +381,29 @@ def test_adjust_binds_updates_to_time_thresh():
         assert cnt.n < 20
 
 
+def test_homogeneous_heuristic_with_iter_lengths():
+    for size in range(0, 10):
+        list(ProgIter(range(size), homogeneous='auto'))
+
+
+def test_mixed_iteration_and_step():
+    # Check to ensure nothing breaks
+    for adjust in [0, 1]:
+        for homogeneous in [0, 1] if adjust else [0]:
+            for size in range(0, 10):
+                for n_inner_steps in range(size):
+                    prog = ProgIter(range(size), adjust=adjust,
+                                    homogeneous=homogeneous)
+                    iprog = iter(prog)
+                    try:
+                        while True:
+                            next(iprog)
+                            for k in range(n_inner_steps):
+                                prog.step()
+                    except StopIteration:
+                        ...
+
+
 if __name__ == '__main__':
     import pytest
     pytest.main([__file__])

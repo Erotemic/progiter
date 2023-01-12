@@ -525,8 +525,6 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
             except _GottaGoFast:
                 use_fast_path = True
-            except StopIteration:
-                ...
 
         if use_fast_path:
             for self._iter_idx, item in gen:
