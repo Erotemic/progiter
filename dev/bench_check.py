@@ -10,7 +10,7 @@ def basic_benchmark():
     """
     N = 10_000
 
-    ti = timerit.Timerit(30, bestof=3, verbose=2)
+    ti = timerit.Timerit(500, bestof=10, verbose=2)
     for timer in ti.reset('baseline'):
         for i in range(N):
             ...
