@@ -95,6 +95,7 @@ TODO:
 import sys
 import time
 import collections
+from itertools import islice
 
 
 __all__ = [
@@ -314,6 +315,13 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             2: enabled=True with clearline=False and adjust=True,
             3: enabled=True with clearline=False and adjust=False
 
+        homogeneous (bool | str):
+            Indicate if the iterable is likely to take a uniform or homogeneous
+            amount of time per iteration. When True we can enable a speed
+            optimization. When False, the time estimates are more accurate.
+            Default to "auto", which attempts to determine if it is safe to use
+            True. Has no effect if ``adjust`` is False.
+
     Note:
         Either use ProgIter in a with statement or call prog.end() at the end
         of the computation if there is a possibility that the entire iterable
@@ -344,7 +352,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                  initial=0, eta_window=64, clearline=True, adjust=True,
                  time_thresh=2.0, show_times=True, show_wall=False,
                  enabled=True, verbose=None, stream=None, chunksize=None,
-                 rel_adjust_limit=4.0, **kwargs):
+                 rel_adjust_limit=4.0, homogeneous='auto', **kwargs):
         """
         Note:
             See attributes for arg information
@@ -409,6 +417,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.started = False
         self.finished = False
 
+        self.homogeneous = homogeneous
+
         # indicates if the cursor is currently at the start of a line (True) or
         # if characters have been written with no newline yet.
         self._cursor_at_newline = True
@@ -470,28 +480,64 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # Iterating is performance sensitive, so separate both cases - where
         # 'freq' is used and checks can be fast, and where 'adjust' is used and
         # checks need more calculation. This is worth duplicating code for.
+
+        use_fast_path = True
         if self.adjust:
-            for self._iter_idx, item in gen:
-                yield item
+            use_fast_path = False
 
-                between_idx = (self._iter_idx - self._now_idx)
-                need_display = between_idx >= self.freq
+            homogeneous = self.homogeneous
+            if homogeneous == 'auto':
+                homogeneous = False
+                # Take a few steps in the slow path and then check to see
+                # if we should continue or do go down the fast path.
+                num_initial_steps = 5
 
-                # No clue how much time has passed, the frequency may be way off.
-                # If 'freq' is too large, checking time is necessary to notice it.
-                if not need_display:
-                    between_time = default_timer() - self._now_time
-                    need_display = between_time >= self.time_thresh
+                # A call to time is 50ns, we can accept the overhead if it
+                # is only .01% of the total loop time
+                overhead_threshold = 50e-9 * 10_000
 
-                if need_display:
-                    # update progress information every so often
-                    self._update_and_display_message()
-        else:
+                slowest = 0
+                for self._iter_idx, item in islice(gen, num_initial_steps):
+                    yield item
+                    self._slow_path_step_body()
+                    slowest = max(slowest, self._between_time)
+
+                # We are moving fast, take the faster path
+                if slowest < overhead_threshold:
+                    homogeneous = True
+
+            if homogeneous:
+                use_fast_path = True
+            else:
+                # Slow path where we do checks every iteration.
+                for self._iter_idx, item in gen:
+                    yield item
+                    self._slow_path_step_body()
+
+        if use_fast_path:
             for self._iter_idx, item in gen:
                 yield item
                 if self._iter_idx % self.freq == 0:  # very low overhead
                     self._update_and_display_message()
+
         self.end()
+
+    def _slow_path_step_body(self, force=False):
+        # It may be more efficient to duplicate or optimize this as in-line
+        # byte code. Unsure. Cython might be helpful.
+        between_idx = (self._iter_idx - self._measured_idx)
+        need_display = force or between_idx >= self.freq
+
+        # No clue how much time has passed, the frequency may be way off.
+        # If 'freq' is too large, checking time is necessary to notice it.
+        if self.adjust and not need_display:
+            self._update_all_calculations()
+            need_display = self._between_time >= self.time_thresh
+            if need_display:
+                self.display_message()
+        elif need_display:
+            # update progress information every so often
+            self._update_and_display_message()
 
     def step(self, inc=1, force=False):
         """
@@ -521,16 +567,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             return
 
         self._iter_idx += inc
-
-        between_idx = (self._iter_idx - self._now_idx)
-        need_display = force or between_idx >= self.freq
-
-        if self.adjust and not need_display:
-            between_time = default_timer() - self._now_time
-            need_display = between_time >= self.time_thresh
-
-        if need_display:
-            self._update_and_display_message()
+        self._slow_path_step_body(force=force)
 
     def _reset_internals(self):
         """
@@ -539,18 +576,32 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # Prepare for iteration
         if self.total is None:
             self.total = _infer_length(self.iterable)
-        self._est_seconds_left = None
+
+        # Track the total time up to the most recent measurement.
         self._total_seconds = 0
-        self._between_time = 0
+
+        # Track the current iteration we are on
         self._iter_idx = self.initial
-        self._last_idx = self.initial - 1
-        # now time is actually not right now
-        # now refers to the most recent measurement
-        # last refers to the measurement before that
-        self._now_idx = self.initial
-        self._now_time = 0
+
+        # Track the last iteration we displayed a message on
+        self._display_idx = None
+
+        # Track the most recent iteration/time a measurement was made
+        self._measured_idx = self.initial
+        self._measured_time = 0
+
+        # Track the second most recent iteration/time a measurement was made
+        self._prev_measured_idx = self.initial - 1
+        self._prev_measured_time = None
+
+        # Track the number of iterations and time between the last two measurements
         self._between_count = -1
+        self._between_time = 0
+
+        # Primary estimates
+        self._est_seconds_left = None
         self._iters_per_second = 0.0
+
         self._update_message_template()
 
     def start(self):  # nocover
@@ -581,9 +632,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # Time progress was initialized
         self._start_time = default_timer()
         # Last time measures were updated
-        self._last_time  = self._start_time
-        self._now_idx = self._iter_idx
-        self._now_time = self._start_time
+        self._prev_measured_time  = self._start_time
+        self._measured_idx = self._iter_idx
+        self._measured_time = self._start_time
 
         # use last few times to compute a more stable average rate
         if self.eta_window is not None:
@@ -608,7 +659,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         if not self.enabled or self.finished:
             return
         # Write the final progress line if it was not written in the loop
-        if self._iter_idx != self._now_idx:
+        if self._iter_idx != self._display_idx:
             self._update_all_calculations()
             self._est_seconds_left = 0
             self.display_message()
@@ -636,15 +687,15 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         update current measurements and estimated of time and progress
         """
-        self._last_idx = self._now_idx
-        self._last_time = self._now_time
+        self._prev_measured_idx = self._measured_idx
+        self._prev_measured_time = self._measured_time
 
-        self._now_idx = self._iter_idx
-        self._now_time = default_timer()
+        self._measured_idx = self._iter_idx
+        self._measured_time = default_timer()
 
-        self._between_time = self._now_time - self._last_time
-        self._between_count = self._now_idx - self._last_idx
-        self._total_seconds = self._now_time - self._start_time
+        self._between_time = self._measured_time - self._prev_measured_time
+        self._between_count = self._measured_idx - self._prev_measured_idx
+        self._total_seconds = self._measured_time - self._start_time
 
         # Adjust frequency to stay within time_thresh
         if self.adjust and (self._between_time < self.time_thresh or
@@ -654,17 +705,17 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     def _update_estimates(self):
         # Estimate rate of progress
         if self.eta_window is None:
-            self._iters_per_second = self._now_idx / self._total_seconds
+            self._iters_per_second = self._measured_idx / self._total_seconds
         else:
             # Smooth out rate with a window
-            self._measured_times.append((self._now_idx, self._now_time))
+            self._measured_times.append((self._measured_idx, self._measured_time))
             prev_idx, prev_time = self._measured_times[0]
-            self._iters_per_second =  ((self._now_idx - prev_idx) /
-                                       (self._now_time - prev_time))
+            self._iters_per_second =  ((self._measured_idx - prev_idx) /
+                                       (self._measured_time - prev_time))
 
         if self.total is not None:
             # Estimate time remaining if total is given
-            iters_left = self.total - self._now_idx
+            iters_left = self.total - self._measured_idx
             est_eta = iters_left / self._iters_per_second
             self._est_seconds_left = est_eta
 
@@ -797,7 +848,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         if self.chunksize and self.total:
             msg = fmtstr.format(
                 desc=self.desc,
-                percent=self._now_idx / self.total * 100,
+                percent=self._measured_idx / self.total * 100,
                 rate=self._iters_per_second * self.chunksize,
                 rate_format='4.2f' if self._iters_per_second * self.chunksize > .001 else 'g',
                 eta=eta, total=total,
@@ -807,7 +858,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         else:
             msg = fmtstr.format(
                 desc=self.desc,
-                iter_idx=self._now_idx,
+                iter_idx=self._measured_idx,
                 rate=self._iters_per_second,
                 rate_format='4.2f' if self._iters_per_second > .001 else 'g',
                 eta=eta, total=total,
@@ -865,6 +916,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._prev_msg_len = msg_len
         self._tryflush()
         self._cursor_at_newline = not self.clearline
+        self._display_idx = self._iter_idx
 
     def _tryflush(self):
         """ flush to the internal stream """

@@ -352,7 +352,7 @@ def _message_count_only():
 def test_adjust_binds_updates_to_time_thresh():
     with _fake_time() as t, _message_count_only() as cnt:
         prog = ProgIter(range(1000), enabled=True, adjust=True, time_thresh=1.0,
-                        rel_adjust_limit=1000000.0)
+                        rel_adjust_limit=1000000.0, homogeneous=False)
         it = iter(prog)
         # Few fast updates at the beginning
         for i in range(10):
@@ -367,7 +367,7 @@ def test_adjust_binds_updates_to_time_thresh():
 
     with _fake_time() as t, _message_count_only() as cnt:
         prog = ProgIter(range(1000), enabled=True, adjust=True, time_thresh=1.0,
-                        rel_adjust_limit=1000000.0)
+                        rel_adjust_limit=1000000.0, homogeneous=False)
         it = iter(prog)
         # Few slow updates at the beginning
         for i in range(10):
@@ -379,6 +379,44 @@ def test_adjust_binds_updates_to_time_thresh():
             t.n += 0.00001
         # Outputs should not spam the screen with messages
         assert cnt.n < 20
+
+
+def test_homogeneous_heuristic_with_iter_lengths():
+    for size in range(0, 10):
+        list(ProgIter(range(size), homogeneous='auto'))
+
+
+def test_mixed_iteration_and_step():
+    # Check to ensure nothing breaks
+    for adjust in [0, 1]:
+        for homogeneous in [0, 1] if adjust else [0]:
+            for size in range(0, 10):
+                for n_inner_steps in range(size):
+                    prog = ProgIter(range(size), adjust=adjust,
+                                    homogeneous=homogeneous)
+                    iprog = iter(prog)
+                    try:
+                        while True:
+                            next(iprog)
+                            for k in range(n_inner_steps):
+                                prog.step()
+                    except StopIteration:
+                        ...
+
+
+def test_end_message_is_displayed():
+    """
+    Older versions of progiter had a bug where the end step would not trigger
+    if calculations were updated without a display
+    """
+    import io
+    stream = io.StringIO()
+    prog = ProgIter(range(1000), stream=stream)
+    for i in prog:
+        prog._update_all_calculations()
+    stream.seek(0)
+    text = stream.read()
+    assert '1000/1000' in text, 'end message should have printed'
 
 
 if __name__ == '__main__':
