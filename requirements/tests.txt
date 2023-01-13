@@ -1,4 +1,4 @@
-xdoctest >= 0.7.0
+xdoctest >= 1.1.0
 
 # Pin maximum pytest versions for older python versions
 # TODO: determine what the actual minimum and maximum acceptable versions of
