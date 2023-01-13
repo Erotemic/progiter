@@ -404,6 +404,21 @@ def test_mixed_iteration_and_step():
                         ...
 
 
+def test_end_message_is_displayed():
+    """
+    Older versions of progiter had a bug where the end step would not trigger
+    if calculations were updated without a display
+    """
+    import io
+    stream = io.StringIO()
+    prog = ProgIter(range(1000), stream=stream)
+    for i in prog:
+        prog._update_all_calculations()
+    stream.seek(0)
+    text = stream.read()
+    assert '1000/1000' in text, 'end message should have printed'
+
+
 if __name__ == '__main__':
     import pytest
     pytest.main([__file__])

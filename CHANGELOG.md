@@ -6,8 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Version: 1.1.0] - Unreleased 
 
+### Added
+* New argument `homogeneous` which can be set to True to enable a speed
+  optimization. Default to `auto`, which uses a heuristic to determine a good
+  setting for this in most cases.
+
 ### Fixed
 * `time_thresh` is now respected when calculating dynamic display updates
+* Fixed an issue where sometimes the final message would not display.
 
 
 ## [Version: 1.0.1] - Released 2022-10-07 
