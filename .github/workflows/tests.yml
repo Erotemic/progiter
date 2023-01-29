@@ -3,7 +3,7 @@
 # Based on ~/code/xcookie/xcookie/rc/tests.yml.in
 # Now based on ~/code/xcookie/xcookie/builders/github_actions.py
 
-name: PurePy Build and Test
+name: PurePyCI
 
 on:
   push:
