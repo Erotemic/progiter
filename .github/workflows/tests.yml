@@ -92,9 +92,48 @@ jobs:
       with:
         name: wheels
         path: ./wheelhouse/*.tar.gz
-  build_and_test_purepy_wheels:
+  build_purepy_wheels:
     name: ${{ matrix.python-version }} on ${{ matrix.os }}, arch=${{ matrix.arch }} with ${{ matrix.install-extras }}
     runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+        - ubuntu-latest
+        python-version:
+        - '3.6'
+        arch:
+        - auto
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+      if: runner.os == 'Linux' && matrix.arch != 'auto'
+      with:
+        platforms: all
+    - name: Setup Python
+      uses: actions/setup-python@v4.5.0
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Build pure wheel
+      shell: bash
+      run: |-
+        python -m pip install pip -U
+        python -m pip install setuptools>=0.8 build
+        python -m build --wheel --outdir wheelhouse
+    - name: Show built files
+      shell: bash
+      run: ls -la wheelhouse
+    - uses: actions/upload-artifact@v3
+      name: Upload wheels artifact
+      with:
+        name: wheels
+        path: ./wheelhouse/progiter*.whl
+  test_purepy_wheels:
+    name: ${{ matrix.python-version }} on ${{ matrix.os }}, arch=${{ matrix.arch }} with ${{ matrix.install-extras }}
+    runs-on: ${{ matrix.os }}
+    needs:
+    - build_purepy_wheels
     strategy:
       matrix:
         include:
@@ -217,14 +256,6 @@ jobs:
     steps:
     - name: Checkout source
       uses: actions/checkout@v3
-    - name: Enable MSVC 64bit
-      uses: ilammy/msvc-dev-cmd@v1
-      if: matrix.os == 'windows-latest' && matrix.cibw_skip == '*-win32'
-    - name: Enable MSVC 32bit
-      uses: ilammy/msvc-dev-cmd@v1
-      if: matrix.os == 'windows-latest' && matrix.cibw_skip == '*-win_amd64'
-      with:
-        arch: x86
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v2
       if: runner.os == 'Linux' && matrix.arch != 'auto'
@@ -234,12 +265,11 @@ jobs:
       uses: actions/setup-python@v4.5.0
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Build pure wheel
-      shell: bash
-      run: |-
-        python -m pip install pip -U
-        python -m pip install setuptools>=0.8 build
-        python -m build --wheel --outdir wheelhouse
+    - uses: actions/download-artifact@v3
+      name: Download wheels and sdist
+      with:
+        name: wheels
+        path: wheelhouse
     - name: Test wheel with ${{ matrix.install-extras }}
       shell: bash
       env:
@@ -257,7 +287,7 @@ jobs:
         echo "MOD_VERSION=$MOD_VERSION"
         # Install the wheel (ensure we are using the version we just built)
         # NOTE: THE VERSION MUST BE NEWER THAN AN EXISTING PYPI VERSION OR THIS MAY FAIL
-        pip install "$MOD_NAME[$INSTALL_EXTRAS]==$MOD_VERSION" -f wheelhouse
+        pip install --prefer-binary "$MOD_NAME[$INSTALL_EXTRAS]==$MOD_VERSION" -f wheelhouse
         # Create a sandboxed directory
         WORKSPACE_DNAME="testdir_${CI_PYTHON_VERSION}_${GITHUB_RUN_ID}_${RUNNER_OS}"
         mkdir -p $WORKSPACE_DNAME
@@ -269,14 +299,6 @@ jobs:
         # Move coverage file to a new name
         mv .coverage "../.coverage.$WORKSPACE_DNAME"
         cd ..
-    - name: Show built files
-      shell: bash
-      run: ls -la wheelhouse
-    - name: Set up Python 3.8 to combine coverage Linux
-      uses: actions/setup-python@v4.5.0
-      if: runner.os == 'Linux'
-      with:
-        python-version: 3.8
     - name: Combine coverage Linux
       if: runner.os == 'Linux'
       run: |-
@@ -295,18 +317,14 @@ jobs:
       name: Codecov Upload
       with:
         file: ./tests/coverage.xml
-    - uses: actions/upload-artifact@v3
-      name: Upload wheels artifact
-      with:
-        name: wheels
-        path: ./wheelhouse/progiter*.whl
   test_deploy:
     name: Uploading Test to PyPi
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && ! startsWith(github.event.ref, 'refs/tags') && ! startsWith(github.event.ref, 'refs/heads/release')
     needs:
     - build_and_test_sdist
-    - build_and_test_purepy_wheels
+    - build_purepy_wheels
+    - test_purepy_wheels
     steps:
     - name: Checkout source
       uses: actions/checkout@v3
@@ -349,7 +367,8 @@ jobs:
     if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags') || startsWith(github.event.ref, 'refs/heads/release'))
     needs:
     - build_and_test_sdist
-    - build_and_test_purepy_wheels
+    - build_purepy_wheels
+    - test_purepy_wheels
     steps:
     - name: Checkout source
       uses: actions/checkout@v3

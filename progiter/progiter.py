@@ -487,6 +487,15 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
             homogeneous = self.homogeneous
             if homogeneous == 'auto':
+                # NOTE: We could have a more complex heuristic with negligable
+                # overhead and more robustness that checks every n iterations
+                # that such that the time call overhead would be negligable.
+                # To do this we would need a semi-fast mode that does the fast
+                # mode for a fixed number of iterations and then rechecks the
+                # slow mode. Or something like that.
+                # NOTE: We could also try to find a pseudo property to check to
+                # see if things are changing. Is this faster than a call to
+                # time.time?
                 homogeneous = False
                 # Take a few steps in the slow path and then check to see
                 # if we should continue or do go down the fast path.
