@@ -404,6 +404,42 @@ def test_mixed_iteration_and_step():
                         ...
 
 
+def check_issue_32_non_homogeneous_time_threshold_prints():
+    import itertools as it
+    from progiter import ProgIter
+    class FakeTimer:
+        def __init__(self, times):
+            self._time = 0
+            self._timeiter = it.cycle(times)
+
+        def __call__(self):
+            step = next(self._timeiter)
+            self._time += step
+            return self._time
+
+    fake_timer = FakeTimer([10, 1, 30, 3, 4])
+    fake_timer()
+
+    N = 20
+    prog = ProgIter(range(N), timer=fake_timer, time_thresh=50, homogeneous=False)
+
+    def display_stats():
+        print('')
+        print(f'prog.time_thresh={prog.time_thresh}')
+        print(f'prog.adjust={prog.adjust}')
+        print(f'prog.freq={prog.freq}')
+        print(f'prog.homogeneous={prog.homogeneous}')
+        print(f'prog._between_time={prog._between_time}')
+        print('')
+
+    _iter = iter(prog)
+    display_stats()
+
+    for _ in range(N):
+        next(_iter)
+        display_stats()
+
+
 def test_end_message_is_displayed():
     """
     Older versions of progiter had a bug where the end step would not trigger

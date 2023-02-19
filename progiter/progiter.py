@@ -352,7 +352,8 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                  initial=0, eta_window=64, clearline=True, adjust=True,
                  time_thresh=2.0, show_times=True, show_wall=False,
                  enabled=True, verbose=None, stream=None, chunksize=None,
-                 rel_adjust_limit=4.0, homogeneous='auto', **kwargs):
+                 rel_adjust_limit=4.0, homogeneous='auto', timer=None,
+                 **kwargs):
         """
         Note:
             See attributes for arg information
@@ -416,6 +417,10 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.extra = ''
         self.started = False
         self.finished = False
+
+        if timer is None:
+            timer = default_timer
+        self._timer = timer
 
         self.homogeneous = homogeneous
 
@@ -481,47 +486,26 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # 'freq' is used and checks can be fast, and where 'adjust' is used and
         # checks need more calculation. This is worth duplicating code for.
 
-        use_fast_path = True
         if self.adjust:
-            use_fast_path = False
-
             homogeneous = self.homogeneous
             if homogeneous == 'auto':
-                # NOTE: We could have a more complex heuristic with negligable
-                # overhead and more robustness that checks every n iterations
-                # that such that the time call overhead would be negligable.
-                # To do this we would need a semi-fast mode that does the fast
-                # mode for a fixed number of iterations and then rechecks the
-                # slow mode. Or something like that.
-                # NOTE: We could also try to find a pseudo property to check to
-                # see if things are changing. Is this faster than a call to
-                # time.time?
-                homogeneous = False
-                # Take a few steps in the slow path and then check to see
-                # if we should continue or do go down the fast path.
-                num_initial_steps = 5
-
-                # A call to time is 50ns, we can accept the overhead if it
-                # is only .01% of the total loop time
-                overhead_threshold = 50e-9 * 10_000
-
-                slowest = 0
-                for self._iter_idx, item in islice(gen, num_initial_steps):
-                    yield item
-                    self._slow_path_step_body()
-                    slowest = max(slowest, self._between_time)
-
-                # We are moving fast, take the faster path
-                if slowest < overhead_threshold:
+                try:
+                    yield from self._homogeneous_check(gen)
+                except _LikelyHomogeneous:
                     homogeneous = True
+                except _LikelyHeterogeneous:
+                    homogeneous = False
 
             if homogeneous:
                 use_fast_path = True
             else:
+                use_fast_path = False
                 # Slow path where we do checks every iteration.
                 for self._iter_idx, item in gen:
                     yield item
                     self._slow_path_step_body()
+        else:
+            use_fast_path = True
 
         if use_fast_path:
             for self._iter_idx, item in gen:
@@ -530,6 +514,36 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                     self._update_and_display_message()
 
         self.end()
+
+    def _homogeneous_check(self, gen):
+        # NOTE: We could have a more complex heuristic with negligable
+        # overhead and more robustness that checks every n iterations
+        # that such that the time call overhead would be negligable.
+        # To do this we would need a semi-fast mode that does the fast
+        # mode for a fixed number of iterations and then rechecks the
+        # slow mode. Or something like that.
+        # NOTE: We could also try to find a pseudo property to check to
+        # see if things are changing. Is this faster than a call to
+        # time.time?
+        # Take a few steps in the slow path and then check to see
+        # if we should continue or do go down the fast path.
+        num_initial_steps = 5
+
+        # A call to time is 50ns, we can accept the overhead if it
+        # is only .01% of the total loop time
+        overhead_threshold = 50e-9 * 10_000
+
+        slowest = 0
+        for self._iter_idx, item in islice(gen, num_initial_steps):
+            yield item
+            self._slow_path_step_body()
+            slowest = max(slowest, self._between_time)
+
+        # We are moving fast, take the faster path
+        if slowest < overhead_threshold:
+            raise _LikelyHomogeneous
+        else:
+            raise _LikelyHeterogeneous
 
     def _slow_path_step_body(self, force=False):
         # It may be more efficient to duplicate or optimize this as in-line
@@ -540,9 +554,12 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # No clue how much time has passed, the frequency may be way off.
         # If 'freq' is too large, checking time is necessary to notice it.
         if self.adjust and not need_display:
-            self._update_all_calculations()
+            self._measure_time()
+            # self._update_measurements_and_estimates()
             need_display = self._between_time >= self.time_thresh
             if need_display:
+                self._mark_prev_time()
+                self._update_estimates()
                 self.display_message()
         elif need_display:
             # update progress information every so often
@@ -619,6 +636,12 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         return self.begin()
 
+    def stop(self):  # nocover
+        """
+        Alias of :func:`ProgIter.end`
+        """
+        return self.end()
+
     def begin(self):
         """
         Initializes information used to measure progress
@@ -639,7 +662,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.display_message()
 
         # Time progress was initialized
-        self._start_time = default_timer()
+        self._start_time = self._timer()
         # Last time measures were updated
         self._prev_measured_time  = self._start_time
         self._measured_idx = self._iter_idx
@@ -669,7 +692,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             return
         # Write the final progress line if it was not written in the loop
         if self._iter_idx != self._display_idx:
-            self._update_all_calculations()
+            self._update_measurements_and_estimates()
             self._est_seconds_left = 0
             self.display_message()
         self.ensure_newline()
@@ -692,16 +715,13 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         min_freq = int(self.freq // rel_limit)
         self.freq = max(min(new_freq, max_freq), min_freq, 1)
 
-    def _update_measurements(self):
+    def _measure_time(self):
         """
-        update current measurements and estimated of time and progress
+        Just measures the current time, which updates how long we've been
+        waiting since the last iteration was displayed.
         """
-        self._prev_measured_idx = self._measured_idx
-        self._prev_measured_time = self._measured_time
-
         self._measured_idx = self._iter_idx
-        self._measured_time = default_timer()
-
+        self._measured_time = self._timer()
         self._between_time = self._measured_time - self._prev_measured_time
         self._between_count = self._measured_idx - self._prev_measured_idx
         self._total_seconds = self._measured_time - self._start_time
@@ -728,12 +748,17 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             est_eta = iters_left / self._iters_per_second
             self._est_seconds_left = est_eta
 
-    def _update_all_calculations(self):
-        self._update_measurements()
+    def _mark_prev_time(self):
+        self._prev_measured_idx = self._measured_idx
+        self._prev_measured_time = self._measured_time
+
+    def _update_measurements_and_estimates(self):
+        self._mark_prev_time()
+        self._measure_time()
         self._update_estimates()
 
     def _update_and_display_message(self):
-        self._update_all_calculations()
+        self._update_measurements_and_estimates()
         self.display_message()
 
     def _update_message_template(self):
@@ -938,3 +963,11 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
     def _write(self, msg):
         """ write to the internal stream """
         self.stream.write(msg)
+
+
+class _LikelyHomogeneous(Exception):
+    ...
+
+
+class _LikelyHeterogeneous(Exception):
+    ...
