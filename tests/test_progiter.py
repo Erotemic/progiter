@@ -18,8 +18,12 @@ class FakeStream:
     def __init__(self, verbose=0, callback=None):
         self.verbose = verbose
         self.callback = callback
+        self._callcount = 0
+        self.messages = []
 
     def write(self, msg):
+        self._callcount += 1
+        self.messages.append(msg)
         if self.verbose:
             sys.stdout.write(msg)
         if self.callback is not None:
@@ -31,15 +35,21 @@ class FakeStream:
 
 class FakeTimer:
     """
-    Helper to hook into and introspect when progiter measures times
+    Helper to hook into and introspect when progiter measures times.
+    You must tic this timer yourself.
     """
     def __init__(self, times=[1]):
         self._time = 0
+        self._callcount = 0
         self._iter = it.cycle(times)
 
-    def __call__(self):
-        step = next(self._iter)
+    def tic(self, step=None):
+        if step is None:
+            step = next(self._iter)
         self._time += step
+
+    def __call__(self):
+        self._callcount += 1
         return self._time
 
 
@@ -176,7 +186,7 @@ def test_progiter_offset_10():
     # Define a function that takes some time
     file = StringIO()
     list(ProgIter(range(10), total=20, verbose=3, start=10, file=file,
-                  freq=5, show_times=False))
+                  freq=5, show_times=False, time_thresh=0))
     file.seek(0)
     want = ['10/20...', '15/20...', '20/20...']
     got = [line.strip() for line in file.readlines()]
@@ -194,7 +204,7 @@ def test_progiter_offset_0():
     # Define a function that takes some time
     file = StringIO()
     for _ in ProgIter(range(10), total=20, verbose=3, start=0, file=file,
-                      freq=5, show_times=False):
+                      freq=5, show_times=False, time_thresh=0):
         pass
     file.seek(0)
     want = ['0/20...', '5/20...', '10/20...']
@@ -280,8 +290,8 @@ def test_adjust_freq():
     prog.time_thresh = 1.0
     prog._max_between_count = -1.0
     prog._max_between_time = -1.0
-    prog._between_measure_time = 1
-    prog._between_measure_count = 1000
+    prog._measure_timedelta = 1
+    prog._measure_countdelta = 1000
     prog._adjust_frequency()
     assert prog.freq == 4
 
@@ -290,8 +300,8 @@ def test_adjust_freq():
     prog.time_thresh = 1.0
     prog._max_between_count = -1.0
     prog._max_between_time = -1.0
-    prog._between_measure_time = 1
-    prog._between_measure_count = 1
+    prog._measure_timedelta = 1
+    prog._measure_countdelta = 1
     prog._adjust_frequency()
     assert prog.freq == 250
 
@@ -300,8 +310,8 @@ def test_adjust_freq():
     prog.time_thresh = 1.0
     prog._max_between_count = -1.0
     prog._max_between_time = -1.0
-    prog._between_measure_time = 1
-    prog._between_measure_count = 1
+    prog._measure_timedelta = 1
+    prog._measure_countdelta = 1
     prog._adjust_frequency()
     assert prog.freq == 1
 
@@ -369,7 +379,7 @@ class IntObject:
 def test_adjust_fast_early_slow_late_doesnt_get_stuck():
     cnt = IntObject()
     fake_stream = FakeStream(verbose=0, callback=cnt.inc)
-    fake_timer = FakeTimer([0])
+    fake_timer = FakeTimer()
 
     prog = ProgIter(range(1000), enabled=True, adjust=True, time_thresh=1.0,
                     rel_adjust_limit=1000000.0, homogeneous=False,
@@ -378,11 +388,11 @@ def test_adjust_fast_early_slow_late_doesnt_get_stuck():
     # Few fast updates at the beginning
     for i in range(10):
         next(it)
-        fake_timer._time += 0.1
+        fake_timer.tic(100)
     # Followed by some extremely slow updates
     for i in range(10):
         next(it)
-        fake_timer._time += 1000
+        fake_timer.tic(0.00001)
     # Outputs should not get stuck at the few fast updates
     assert cnt.n > 8
 
@@ -390,7 +400,7 @@ def test_adjust_fast_early_slow_late_doesnt_get_stuck():
 def test_adjust_slow_early_fast_late_doesnt_spam():
     cnt = IntObject()
     fake_stream = FakeStream(verbose=0, callback=cnt.inc)
-    fake_timer = FakeTimer([0])
+    fake_timer = FakeTimer()
 
     prog = ProgIter(range(1000), enabled=True, adjust=True, time_thresh=1.0,
                     rel_adjust_limit=1000000.0, homogeneous=False,
@@ -399,11 +409,11 @@ def test_adjust_slow_early_fast_late_doesnt_spam():
     # Few slow updates at the beginning
     for i in range(10):
         next(it)
-        fake_timer._time += 100
+        fake_timer.tic(100)
     # Followed by a ton of extremely fast updates
     for i in range(990):
         next(it)
-        fake_timer._time += 0.00001
+        fake_timer.tic(0.00001)
     # Outputs should not spam the screen with messages
     assert cnt.n < 20
 
@@ -432,36 +442,73 @@ def test_mixed_iteration_and_step():
 
 
 def check_issue_32_non_homogeneous_time_threshold_prints():
+    """
+    xdoctest ~/code/progiter/tests/test_progiter.py check_issue_32_non_homogeneous_time_threshold_prints
+    """
     from progiter import ProgIter
 
-    fake_stream = FakeStream(callback=lambda: print('!!DISPLAY!!'))
-    fake_timer = FakeTimer([10, 1, 30, 3, 4])
+    fake_stream = FakeStream(verbose=1)
+    # fake_timer = FakeTimer([10, 1, 30, 40, 3, 4, 10, 10, 10, 10, 10, 10])
+    factor = 1e-7
+    fake_timer = FakeTimer([.5 * factor])
 
     N = 20
-    prog = ProgIter(range(N), timer=fake_timer, time_thresh=50,
-                    homogeneous=False, stream=fake_stream)
+    prog = ProgIter(range(N), timer=fake_timer, time_thresh=2.9 * factor,
+                    homogeneous='auto', stream=fake_stream, clearline=False)
 
-    def display_stats():
-        print('')
-        print(f'prog.time_thresh={prog.time_thresh}')
-        print(f'prog.adjust={prog.adjust}')
-        print(f'prog.freq={prog.freq}')
-        print(f'prog.homogeneous={prog.homogeneous}')
-        print(f'prog._curr_measurement={prog._curr_measurement}')
-        print(f'prog._display_measurement={prog._display_measurement}')
-        print(f'prog._between_measure_time={prog._between_measure_time}')
-        print(f'prog._between_display_time={prog._between_display_time}')
-        print('')
+    static_state = {
+        'time_thresh': prog.time_thresh,
+        'adjust': prog.adjust,
+        'homogeneous': prog.homogeneous,
+    }
+
+    states = []
+
+    def record_state():
+        real_display_timedelta = fake_timer._time - prog._display_measurement.time
+        state = {
+            'iter_idx': prog._iter_idx,
+            'next_idx': prog._next_measure_idx,
+            'time': fake_timer._time,
+            'freq': prog.freq,
+            'curr': prog._curr_measurement,
+            'disp': prog._display_measurement,
+            'meas_td': prog._measure_timedelta,
+            'disp_td': prog._display_timedelta,
+            'real_disp_td': real_display_timedelta,
+            'n_disp': fake_stream._callcount,
+            'n_times': fake_timer._callcount,
+        }
+        states.append(state)
+        return state
 
     _iter = iter(prog)
-    display_stats()
+    prog.begin()
+    record_state()
 
     for _ in range(N):
         next(_iter)
-        display_stats()
+        record_state()
+        fake_timer.tic()
+
+    assert fake_stream._callcount == len(fake_stream.messages)
 
     prog.end()
-    display_stats()
+    record_state()
+
+    try:
+        import ubelt as ub
+        import pandas as pd
+        import rich
+        print('fake_stream.messages = {}'.format(ub.urepr(fake_stream.messages, nl=1)))
+        print(f'prog._likely_homogeneous={prog._likely_homogeneous}')
+        rich.print(pd.Series(static_state))
+        df = pd.DataFrame(states)
+        df['displayed'] = df['n_disp'].diff().astype(bool)
+        df['timed'] = df['n_times'].diff().astype(bool)
+        rich.print(df.to_string())
+    except ImportError:
+        ...
 
     # TODO: write actual asserts that check that displays, measurements, and
     # adjustments happen at the write times
