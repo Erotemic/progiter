@@ -4,6 +4,17 @@ We are currently working on porting this changelog to the specifications in
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [Version: 1.2.0] - 
+
+### Fixed
+* homogeneous=False mode now correctly prints messages
+
+### Changed
+* Reworked internals of how time and display checks are handled. This has the
+  user-facing-effect that messages will not print unless `time_thresh` seconds
+  have passed.
+
 ## [Version: 1.1.0] - Released 2023-01-13  
 
 ### Added
