@@ -88,9 +88,6 @@ Example:
     check primes  512/1000...Biggest prime so far: 509 rate=165271.92 Hz, eta=0:00:00, total=0:00:00, wall=2020-10-23 17:27 EST
     check primes  768/1000...Biggest prime so far: 761 rate=136480.12 Hz, eta=0:00:00, total=0:00:00, wall=2020-10-23 17:27 EST
     check primes 1000/1000...Biggest prime so far: 997 rate=115214.95 Hz, eta=0:00:00, total=0:00:00, wall=2020-10-23 17:27 EST
-
-TODO:
-    - [ ] Specify callback that occurs whenever progress is written?
 """
 import sys
 import time
@@ -310,6 +307,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         stream (typing.IO):
             stream where progress information is written to, default=sys.stdout
+
+        timer (callable):
+            the timer object to use. Defaults to :func:`time.perf_counter`.
 
         enabled (bool): if False nothing happens. default=True
 

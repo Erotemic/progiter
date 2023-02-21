@@ -530,6 +530,49 @@ def test_end_message_is_displayed():
     assert '1000/1000' in text, 'end message should have printed'
 
 
+def test_standalone_display():
+    from progiter import ProgIter
+    fake_stream = FakeStream(verbose=1)
+    fake_timer = FakeTimer()
+    time_thresh = 50
+
+    N = 20
+    prog = ProgIter(range(N), timer=fake_timer, time_thresh=time_thresh,
+                    homogeneous=True, stream=fake_stream, clearline=True)
+
+    prog.begin()
+
+    _iter = iter(prog)
+
+    prog.display_message()
+    prog.display_message()
+    prog.display_message()
+    fake_timer.tic(1)
+    prog.display_message()
+
+    next(_iter)
+    prog.display_message()
+    prog.display_message()
+
+    fake_timer.tic(1)
+    next(_iter)
+    fake_timer.tic(1)
+    next(_iter)
+    fake_timer.tic(1)
+    next(_iter)
+    prog.display_message()
+
+    assert fake_stream.messages == [
+        '\r  0/20... rate=0 Hz, eta=?, total=0:00:00',
+        '\r  0/20... rate=0 Hz, eta=?, total=0:00:00',
+        '\r  0/20... rate=0 Hz, eta=?, total=0:00:00',
+        '\r  0/20... rate=0 Hz, eta=?, total=0:00:00',
+        '\r  0/20... rate=0 Hz, eta=?, total=0:00:00',
+        '\r  1/20... rate=1.00 Hz, eta=0:00:19, total=0:00:01',
+        '\r  1/20... rate=1.00 Hz, eta=0:00:19, total=0:00:01',
+        '\r  4/20... rate=1.00 Hz, eta=0:00:16, total=0:00:04']
+
+
 if __name__ == '__main__':
     import pytest
     pytest.main([__file__])
