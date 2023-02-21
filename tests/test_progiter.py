@@ -448,12 +448,13 @@ def check_issue_32_non_homogeneous_time_threshold_prints():
     from progiter import ProgIter
 
     fake_stream = FakeStream(verbose=1)
-    # fake_timer = FakeTimer([10, 1, 30, 40, 3, 4, 10, 10, 10, 10, 10, 10])
-    factor = 1e-7
-    fake_timer = FakeTimer([.5 * factor])
+    fake_timer = FakeTimer([10, 1, 30, 40, 3, 4, 10, 10, 10, 10, 10, 10])
+    time_thresh = 50
+    # fake_timer = FakeTimer([.5 * factor])
+    # time_thresh = 2.9 * factor
 
     N = 20
-    prog = ProgIter(range(N), timer=fake_timer, time_thresh=2.9 * factor,
+    prog = ProgIter(range(N), timer=fake_timer, time_thresh=time_thresh,
                     homogeneous='auto', stream=fake_stream, clearline=False)
 
     static_state = {
