@@ -16,7 +16,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   grained display controls.
 
 
-## [Version: 1.2.0] - 
+## [Version: 1.2.0] - 2023-02-21
 
 ### Fixed
 * homogeneous=False mode now correctly prints messages
