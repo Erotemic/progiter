@@ -5,6 +5,17 @@ We are currently working on porting this changelog to the specifications in
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Version: 1.3.0] - 
+
+### Added
+
+* Percent complete is now shown by default if possible.
+* Set extra can now take a callable, which will be executed dynamically right
+  before a display occurs.
+* Added `show_rate`, `show_eta`, `show_total`, `show_percent` flags for finer
+  grained display controls.
+
+
 ## [Version: 1.2.0] - 
 
 ### Fixed

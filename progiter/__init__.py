@@ -30,8 +30,7 @@ reported. See API documentation of the ``ProgIter`` classs here:
 https://progiter.readthedocs.io/en/latest/progiter.progiter.html#progiter.progiter.ProgIter
 
 Note that by default ProgIter reports information about iteration-rate,
-fraction-complete, estimated time remaining, time taken so far, and the current
-wall time.
+fraction-complete, estimated time remaining, and time taken so far.
 
 .. code:: python
 
@@ -54,7 +53,7 @@ wall time.
 """
 from .progiter import (ProgIter,)
 
-__version__ = '1.2.0'
+__version__ = '1.3.0'
 __all__ = [
     'ProgIter',
 ]
