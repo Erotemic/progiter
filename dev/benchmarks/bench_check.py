@@ -8,30 +8,30 @@ def basic_benchmark():
     Run the simplest benchmark where we iterate over nothing and compare the
     slowdown of using a progress iterator versus doing nothing.
     """
-    N = 10_000
+    N = 100_000
 
-    ti = timerit.Timerit(500, bestof=10, verbose=2)
+    ti = timerit.Timerit(21, bestof=3, verbose=2)
     for timer in ti.reset('baseline'):
         for i in range(N):
             ...
 
-    for timer in ti.reset('old progiter'):
-        for i in ub.ProgIter(range(N)):
-            ...
+    # for timer in ti.reset('ubelt progiter'):
+    #     for i in ub.ProgIter(range(N)):
+    #         ...
 
-    for timer in ti.reset('new progiter, enabled=False'):
+    for timer in ti.reset('progiter, enabled=False'):
         for i in progiter.ProgIter(range(N), enabled=False):
             ...
 
-    for timer in ti.reset('new progiter, homogeneous=True'):
+    for timer in ti.reset('progiter, homogeneous=True'):
         for i in progiter.ProgIter(range(N), homogeneous=True):
             ...
 
-    for timer in ti.reset('new progiter, homogeneous=auto'):
+    for timer in ti.reset('progiter, homogeneous=auto'):
         for i in progiter.ProgIter(range(N), homogeneous='auto'):
             ...
 
-    for timer in ti.reset('new progiter, homogeneous=False'):
+    for timer in ti.reset('progiter, homogeneous=False'):
         for i in progiter.ProgIter(range(N), homogeneous=False):
             ...
 
@@ -62,19 +62,19 @@ def basic_benchmark():
 def other_tests():
     N = 100
     ###########
-    with ub.Timer(label='new fixed freq=10'):
+    with ub.Timer(label='progiter fixed freq=10'):
         for i in progiter.ProgIter(range(N), freq=10, adjust=False):
             pass
 
-    with ub.Timer(label='old fixed freq=10'):
+    with ub.Timer(label='ubelt fixed freq=10'):
         for i in ub.ProgIter(range(N), freq=10, adjust=False):
             pass
 
-    with ub.Timer(label='new fixed freq=1'):
+    with ub.Timer(label='progiter fixed freq=1'):
         for i in progiter.ProgIter(range(N), freq=1, adjust=False):
             pass
 
-    with ub.Timer(label='old fixed freq=1'):
+    with ub.Timer(label='ubelt fixed freq=1'):
         for i in ub.ProgIter(range(N), freq=1, adjust=False):
             pass
 
@@ -123,6 +123,6 @@ def other_tests():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/progiter/dev/bench_check.py
+        python ~/code/progiter/dev/benchmarks/bench_check.py
     """
     basic_benchmark()
