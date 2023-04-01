@@ -22,7 +22,8 @@ disk).
 
 .. .. animation generated via: dev/maintain/record_animation_demo.sh
 
-.. image:: https://i.imgur.com/HoJJYzd.gif
+.. .. image:: https://i.imgur.com/HoJJYzd.gif
+.. image:: https://i.imgur.com/Jqfg8w0.gif
    :height: 300px
    :align: left
 
