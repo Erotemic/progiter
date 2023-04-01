@@ -88,9 +88,9 @@ the ProgIter API. This is done as follows:
     manual 100.00% 3/3... rate=12248.15 Hz, eta=0:00:00, total=0:00:00
 
 
- By default ``ProgIter`` aims to write a line to stdout once every two seconds
- to minimize its overhead and reduce clutter. Setting this to zero will force
- it to print on every iteration.
+By default ``ProgIter`` aims to write a line to stdout once every two seconds
+to minimize its overhead and reduce clutter. Setting this to zero will force
+it to print on every iteration.
 
 
 When working with ProgIter in either iterable or manual mode you can use the
