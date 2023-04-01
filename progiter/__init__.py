@@ -18,8 +18,8 @@ disk).
 ProgIter was originally developed independently of ``tqdm``, but the newer
 versions of this library have been designed to be compatible with tqdm-API.
 ``ProgIter`` is now a (mostly) drop-in alternative to tqdm_. The ``tqdm``
-library may be more appropriate in some cases. *The main advantage of ``ProgIter``
-is that it does not use any python threading*, and therefore can be safer with
+library may be more appropriate in some cases. The main advantage of ``ProgIter``
+is that it does not use any python threading, and therefore can be safer with
 code that makes heavy use of multiprocessing.
 `The reason <https://pybay.com/site_media/slides/raymond2017-keynote/combo.html>`_
 for this is that threading before forking may cause locks to be duplicated
