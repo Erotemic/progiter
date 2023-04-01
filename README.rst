@@ -8,6 +8,13 @@ ProgIter lets you measure and print the progress of an iterative process. This
 can be done either via an iterable interface or using the manual API. Using the
 iterable interface is most common.
 
+.. .. animation generated via: dev/maintain/record_animation_demo.sh
+
+.. .. image:: https://i.imgur.com/HoJJYzd.gif
+.. image:: https://i.imgur.com/Jqfg8w0.gif
+   :height: 300px
+   :align: left
+
 ProgIter is *unthreaded*. This differentiates it from
 `tqdm <https://github.com/tqdm/tqdm>`_ and
 `rich.progress <https://rich.readthedocs.io/en/stable/progress.html>`_
@@ -19,13 +26,6 @@ stability, and --- unintuitively ---- speed (due to Python's GIL).
 Meanwhile threaded progress bars are more responsive, able to update multiple
 stdout lines at a time, and can look prettier (unless you try to log stdout to
 disk).
-
-.. .. animation generated via: dev/maintain/record_animation_demo.sh
-
-.. .. image:: https://i.imgur.com/HoJJYzd.gif
-.. image:: https://i.imgur.com/Jqfg8w0.gif
-   :height: 300px
-   :align: left
 
 ProgIter was originally developed independently of ``tqdm``, but the newer
 versions of this library have been designed to be compatible with tqdm-API.
