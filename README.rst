@@ -137,7 +137,6 @@ sync.
 
 
 .. _ubelt: https://github.com/Erotemic/ubelt
-.. _tqdm: https://pypi.python.org/pypi/tqdm
 
 
 .. |Travis| image:: https://img.shields.io/travis/Erotemic/progiter/master.svg?label=Travis%20CI
