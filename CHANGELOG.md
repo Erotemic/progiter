@@ -5,6 +5,13 @@ We are currently working on porting this changelog to the specifications in
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [Version: 2.0.0] - 
+
+### Added
+
+* New module: progiter.manager with ProgressManager and RichProgIter
+
+
 ## [Version: 1.3.0] - 
 
 ### Added

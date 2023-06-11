@@ -55,9 +55,16 @@ https://progiter.readthedocs.io/en/latest/progiter.progiter.html#progiter.progit
     0.60%    6/1000... rate=76995.12 Hz, eta=0:00:00, total=0:00:00
     100.00% 1000/1000... rate=266488.22 Hz, eta=0:00:00, total=0:00:00
 """
-from .progiter import ProgIter
 
-__version__ = '1.3.0'
-__all__ = [
-    'ProgIter',
-]
+__autogen__ = """
+mkinit ~/code/progiter/progiter/__init__.py -w
+"""
+
+__version__ = '2.0.0'
+from progiter import manager
+from progiter import progiter
+
+from progiter.manager import (ProgressManager,)
+from progiter.progiter import (ProgIter,)
+
+__all__ = ['ProgIter', 'ProgressManager', 'manager', 'progiter']
