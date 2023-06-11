@@ -4,11 +4,45 @@ Progress Manager
 
 This is watch.utils.manager ported from geowatch.
 
+CommandLine:
+    DEMO_PROGRESS=1 xdoctest -m progiter.manager __doc__
+
 Example:
     >>> # xdoctest: +REQUIRES(env:DEMO_PROGRESS)
-    >>> from progiter.progman import ProgressManager
+    >>> print('First a simple example')
+    >>> from progiter.manager import ProgressManager
     >>> import time
-    >>> delay = 0.05
+    >>> iterable = range(1000)
+    >>> pman = ProgressManager()
+    >>> with pman:
+    >>>     for item in pman.progiter(iterable, desc='big loop'):
+    >>>         time.sleep(0.005)
+
+
+Example:
+    >>> # xdoctest: +REQUIRES(env:DEMO_PROGRESS)
+    >>> print('Choose your backend!')
+    >>> from progiter.manager import ProgressManager
+    >>> import time
+    >>> iterable = range(1000)
+    >>> print('threaded rich backend')
+    >>> pman = ProgressManager(backend='rich')
+    >>> with pman:
+    >>>     for item in pman.progiter(iterable, desc='big loop'):
+    >>>         time.sleep(0.005)
+    >>> ...
+    >>> print('unthreaded progiter backend')
+    >>> pman = ProgressManager(backend='progiter')
+    >>> with pman:
+    >>>     for item in pman.progiter(iterable, desc='big loop'):
+    >>>         time.sleep(0.005)
+
+Example:
+    >>> # xdoctest: +REQUIRES(env:DEMO_PROGRESS)
+    >>> print('Now a more complex example')
+    >>> from progiter.manager import ProgressManager
+    >>> import time
+    >>> delay = 0.01
     >>> # Can use plain progiter or rich
     >>> # The usecase for plain progiter is when threads / live output
     >>> # is not desirable and you just want plain stdout progress
