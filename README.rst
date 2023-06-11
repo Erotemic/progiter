@@ -17,7 +17,7 @@ iterable interface is most common.
 
 Basic usage is:
 
-.. code::
+.. code:: python
 
     >>> from progiter import ProgIter
     >>> for n in ProgIter(range(1000)):
@@ -58,7 +58,7 @@ New in Version 2.0, ``progiter.ProgressManager``, which enables near-seemless
 toggling between an unthreaded ``ProgIter`` backend and a threaded
 ``RichProgIter`` backend. Basic usage is:
 
-.. code::
+.. code:: python
 
     from progiter.manager import ProgressManager
     pman = ProgressManager()
