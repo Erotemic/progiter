@@ -459,6 +459,7 @@ class ProgressManager(BaseProgIterManager):
         >>>         for i in pman.progiter(range(100), desc=f'inner loop {i}'):
         >>>             pass
         >>> #
+        >>> # xdoctest: +REQUIRES(module:rich)
         >>> self = pman = ProgressManager(backend='rich')
         >>> pman = ProgressManager(backend='rich')
         >>> with pman:
@@ -470,6 +471,7 @@ class ProgressManager(BaseProgIterManager):
 
     Example:
         >>> # A fairly complex example
+        >>> # xdoctest: +REQUIRES(module:rich)
         >>> from progiter.manager import ProgressManager
         >>> import time
         >>> delay = 0.00005
@@ -491,6 +493,7 @@ class ProgressManager(BaseProgIterManager):
     Example:
         >>> # Test complex example over a grid of parameters
         >>> # xdoctest: +REQUIRES(module:ubelt)
+        >>> # xdoctest: +REQUIRES(module:rich)
         >>> import ubelt as ub
         >>> from progiter.manager import ProgressManager, ManagedProgIter
         >>> import time
@@ -532,6 +535,7 @@ class ProgressManager(BaseProgIterManager):
 
     Example:
         >>> # Demo manual usage
+        >>> # xdoctest: +REQUIRES(module:rich)
         >>> from progiter.manager import ProgressManager
         >>> from progiter import manager
         >>> import time
