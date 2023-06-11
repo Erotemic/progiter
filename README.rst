@@ -21,8 +21,7 @@ Basic usage is:
 
     >>> from progiter import ProgIter
     >>> for n in ProgIter(range(1000)):
-    >>>     # do some work
-    >>>     ...
+    >>>     ...  # do some work
 
 
 The basic ProgIter is *unthreaded*. This differentiates it from
@@ -64,8 +63,7 @@ toggling between an unthreaded ``ProgIter`` backend and a threaded
     pman = ProgressManager()
     with pman:
         for item in pman.progiter(range(1000)):
-            # do some work
-            ...
+            ...  # do some work
 
 
 The following gif illustrates this and more complex usage:
