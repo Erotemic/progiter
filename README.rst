@@ -15,7 +15,7 @@ iterable interface is most common.
    :height: 300px
    :align: left
 
-ProgIter is *unthreaded*. This differentiates it from
+The basic ProgIter is *unthreaded*. This differentiates it from
 `tqdm <https://github.com/tqdm/tqdm>`_ and
 `rich.progress <https://rich.readthedocs.io/en/stable/progress.html>`_
 which use a *threaded* implementation.
@@ -43,6 +43,10 @@ ProgIter is simpler than tqdm, which may be desirable for some applications.
 However, this also means ProgIter is not as extensible as tqdm.
 If you want a pretty bar or need something fancy, use tqdm (or rich);
 if you want useful information  about your iteration by default, use progiter.
+
+New in Version 2.0, ``progiter.ProgressManager``, which enables near-seemless
+toggling between an unthreaded ``ProgIter`` backend and a threaded
+``RichProgIter`` backend.
 
 Package level documentation can be found at: https://progiter.readthedocs.io/en/latest/
 

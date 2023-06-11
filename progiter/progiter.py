@@ -182,7 +182,7 @@ class _TQDMCompat(object):
         """ tqdm api compatibility. does nothing """
         pass
 
-    def set_postfix(self, ordered_dict=None, refresh=True, **kwargs):
+    def set_postfix_dict(self, ordered_dict=None, refresh=True, **kwargs):
         """ tqdm api compatibility. calls set_extra """
         # Sort in alphabetical order to be more deterministic
         postfix = collections.OrderedDict(
@@ -203,6 +203,12 @@ class _TQDMCompat(object):
         postfix = ', '.join(key + '=' + postfix[key].strip()
                                  for key in postfix.keys())
         self.set_postfix_str(postfix, refresh=refresh)
+
+    def set_postfix(self, postfix, **kwargs):
+        if isinstance(postfix, str):
+            self.set_postfix_str(postfix, **kwargs)
+        else:
+            self.set_postfix_dict(ordered_dict=postfix, **kwargs)
 
     def set_postfix_str(self, s='', refresh=True):
         """ tqdm api compatibility. calls set_extra """
