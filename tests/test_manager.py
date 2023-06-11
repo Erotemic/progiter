@@ -11,7 +11,11 @@ def test_multiple_managers():
     """
     from progiter import manager
     import time
-    from rich import print
+    try:
+        from rich import print
+    except ImportError:
+        import pytest
+        pytest.skip('no rich')
 
     pman1 = manager.ProgressManager()
 
