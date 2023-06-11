@@ -66,6 +66,11 @@ def test_multiple_managers():
 def test_multiple_managers_tree():
     """
     """
+    try:
+        import rich  # NOQA
+    except ImportError:
+        import pytest
+        pytest.skip('no rich')
     import time
     from progiter import manager
 
