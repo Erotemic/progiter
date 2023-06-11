@@ -5,14 +5,14 @@ We are currently working on porting this changelog to the specifications in
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [Version: 2.0.0] - 
+## [Version: 2.0.0] - Released 2023-06-11
 
 ### Added
 
 * New module: progiter.manager with ProgressManager and RichProgIter
 
 
-## [Version: 1.3.0] - 
+## [Version: 1.3.0] - Released 2023-02-26
 
 ### Added
 
@@ -23,7 +23,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   grained display controls.
 
 
-## [Version: 1.2.0] - 2023-02-21
+## [Version: 1.2.0] - Released 2023-02-21
 
 ### Fixed
 * homogeneous=False mode now correctly prints messages
