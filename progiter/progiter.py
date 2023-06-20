@@ -470,8 +470,17 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.begin()
         return self
 
-    def __exit__(self, type_, value, trace):
-        if trace is not None:
+    def __exit__(self, ex_type, ex_value, ex_traceback):
+        """
+        Args:
+            ex_type (Type[BaseException] | None):
+            ex_value (BaseException | None):
+            ex_traceback (TracebackType | None):
+
+        Returns:
+            bool | None
+        """
+        if ex_traceback is not None:
             return False
         else:
             self.end()
