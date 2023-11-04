@@ -123,6 +123,7 @@ class _RichProgIterManager(BaseProgIterManager):
     enabled: Incomplete
     info_panel: Incomplete
     rich_progress: Incomplete
+    default_progkw: Incomplete
 
     def __init__(self, **kwargs) -> None:
         ...
