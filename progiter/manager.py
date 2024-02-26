@@ -159,6 +159,12 @@ class RichProgIter:
             manager = weakref.proxy(manager)
             self._self_managed = False
 
+        if verbose is None:
+            verbose = 1
+
+        if not verbose:
+            enabled = False
+
         self.manager = manager
         self.iterable = iterable
         self.enabled = enabled
@@ -176,7 +182,12 @@ class RichProgIter:
         else:
             addtask_kw['description'] = ''
         addtask_kw['total'] = self.total
-        self.task_id = self.manager.rich_progress.add_task(**addtask_kw)
+
+        if self.enabled:
+            self.task_id = self.manager.rich_progress.add_task(**addtask_kw)
+        else:
+            self.task_id = None
+
         self.transient = transient
         self.extra = None
 
@@ -197,7 +208,8 @@ class RichProgIter:
             self.manager.stop()
 
     def update(self, n=1):
-        self.manager.rich_progress.update(self.task_id, advance=n)
+        if self.enabled:
+            self.manager.rich_progress.update(self.task_id, advance=n)
 
     step = update
 
@@ -273,11 +285,24 @@ MAIN_RICH_PMAN = None
 class _RichProgIterManager(BaseProgIterManager):
     """
     rich specific backend.
+
+    Example:
+        >>> # Test verbose = 0
+        >>> from progiter.manager import ProgressManager
+        >>> import time
+        >>> pman = ProgressManager(backend='rich', verbose=0)
+        >>> with pman:
+        >>>     for i in pman.progiter(range(10), desc='should not show1'):
+        >>>         ...
+        >>>     for i in pman.progiter(range(10), verbose=1, desc='should show2'):
+        >>>         ...
+        >>>     for i in pman.progiter(range(10), verbose=0, desc='should not show3'):
+        >>>         ...
     """
 
     def __init__(self, **kwargs):
         self.prog_iters = []
-        self.enabled = kwargs.get('enabled', True)
+        self.enabled = kwargs.pop('enabled', True)
 
         self.info_panel = None
         self.rich_progress = None
@@ -285,6 +310,11 @@ class _RichProgIterManager(BaseProgIterManager):
 
         self.setup_rich()
         self._active = False
+
+        self.default_progkw = dict({
+            'verbose': kwargs.pop('verbose', 1),
+        })
+        self.default_progkw.update(kwargs)
 
     # Can we make this work?
     # def __del__(self):
@@ -296,9 +326,14 @@ class _RichProgIterManager(BaseProgIterManager):
             self.start()
         # Fixme remove circular ref
         # self.rich_progress.pman = self
+        progkw = self.default_progkw.copy()
+        progkw.update(kw)
+        progkw['verbose'] = verbose
+        if verbose == 'auto':
+            progkw['verbose'] = self.default_progkw.get('verbose', 1)
         prog = RichProgIter(
             manager=self, iterable=iterable, total=total, desc=desc,
-            transient=transient, spinner=spinner, **kw)
+            transient=transient, spinner=spinner, **progkw)
         self.prog_iters.append(prog)
         return prog
 
