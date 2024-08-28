@@ -9,6 +9,9 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ### Added
 * More TQDM compatibility on ProgIter.
 
+### Removed
+* Drop support for Python 3.6 and 3.7
+
 ### Fixed
 * RichProgressManager now respects enabled=False and verbose=0
 
