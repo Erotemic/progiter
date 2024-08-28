@@ -287,6 +287,7 @@ class _RichProgIterManager(BaseProgIterManager):
     rich specific backend.
 
     Example:
+        >>> # xdoctest: +REQUIRES(module:rich)
         >>> # Test verbose = 0
         >>> from progiter.manager import ProgressManager
         >>> import time
