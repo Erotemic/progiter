@@ -251,6 +251,31 @@ class _TQDMCompat(object):
         if refresh:
             self.refresh()
 
+    def reset(self, total=None):
+        """
+        Resets the progress to the start optionally with a new length
+        """
+        self.total = total
+        self._reset_internals()
+
+    @property
+    def disable(self):
+        return not self.enabled
+
+    @property
+    def n(self):
+        """
+        Alias for `self._iter_idx`
+        """
+        return self._iter_idx
+
+    @n.setter
+    def n(self, value):
+        """
+        TQDM allows the user to set 'n' to control number of iterations
+        """
+        self._iter_idx = value
+
 
 class _BackwardsCompat(object):
     """
@@ -442,6 +467,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             kwargs.pop('position', None)  # API compatibility does nothing
             kwargs.pop('dynamic_ncols', None)  # API compatibility does nothing
             kwargs.pop('leave', True)  # we always leave
+            kwargs.pop('smoothing', 0)  # API compatibility, unhandled, could implement
 
             # Accept the old api keywords
             desc = kwargs.pop('label', desc)
