@@ -68,13 +68,24 @@ from progiter.progiter import ProgIter
 
 __all__ = ['ProgressManager']
 
+
+def _coerce_envflag(value):
+    """Coerce common environment variable truthy / falsy strings."""
+    value = str(value).strip().lower()
+    if value in {'', '0', 'false', 'no', 'off'}:
+        return False
+    if value in {'1', 'true', 'yes', 'on'}:
+        return True
+    return bool(value)
+
+
 # If truthy disable all threaded rich options
 PROGITER_NOTHREAD = os.environ.get('PROGITER_NOTHREAD', 'auto')
-if PROGITER_NOTHREAD == 'auto':
+if str(PROGITER_NOTHREAD).strip().lower() == 'auto':
     # Use rich outside of slurm
-    PROGITER_NOTHREAD = os.environ.get('SLURM_JOBID', '')
+    PROGITER_NOTHREAD = bool(os.environ.get('SLURM_JOBID', ''))
 else:
-    PROGITER_NOTHREAD = bool(PROGITER_NOTHREAD)
+    PROGITER_NOTHREAD = _coerce_envflag(PROGITER_NOTHREAD)
 
 
 LIVE_PROGRESS_MANAGERS = weakref.WeakValueDictionary()
@@ -190,6 +201,9 @@ class RichProgIter:
 
         self.transient = transient
         self.extra = None
+        self.started = False
+        self.finished = False
+        self._removed = False
 
     def start(self):
         return self.begin()
@@ -198,14 +212,20 @@ class RichProgIter:
         return self.end()
 
     def begin(self):
-        if self._self_managed:
-            self.manager.start()
+        if not self.started:
+            if self._self_managed:
+                self.manager.start()
+            self.started = True
+        return self
 
     def end(self):
-        if self.transient:
-            self.remove()
+        if not self.finished:
+            if self.transient:
+                self.remove()
+            self.finished = True
         if self._self_managed:
             self.manager.stop()
+        return self
 
     def update(self, n=1):
         if self.enabled:
@@ -218,20 +238,23 @@ class RichProgIter:
             yield from self.iterable
         else:
             self.start()
-            for item in self.iterable:
-                yield item
-                self.manager.rich_progress.update(self.task_id, advance=1)
-            if self.total is None:
-                task = self.manager.rich_progress._tasks[self.task_id]
-                self.manager.rich_progress.update(self.task_id, total=task.completed)
-            self.stop()
+            try:
+                for item in self.iterable:
+                    yield item
+                    self.manager.rich_progress.update(self.task_id, advance=1)
+                if self.total is None and not self._removed:
+                    task = self.manager.rich_progress._tasks[self.task_id]
+                    self.manager.rich_progress.update(self.task_id, total=task.completed)
+            finally:
+                self.stop()
 
     def remove(self):
         """
         Remove this progress task from its rich manager
         """
-        if self.enabled:
+        if self.enabled and not self._removed:
             self.manager.rich_progress.remove_task(self.task_id)
+            self._removed = True
 
     def update_info(self, text):
         if self.enabled:
@@ -327,6 +350,7 @@ class _RichProgIterManager(BaseProgIterManager):
             self.start()
         # Fixme remove circular ref
         # self.rich_progress.pman = self
+        self.prog_iters = [p for p in self.prog_iters if not p.finished]
         progkw = self.default_progkw.copy()
         progkw.update(kw)
         progkw['verbose'] = verbose
@@ -397,20 +421,23 @@ class _RichProgIterManager(BaseProgIterManager):
             MAIN_RICH_PMAN = self
 
     def update_info(self, text):
-        from rich.panel import Panel
-        if self.info_panel is None:
-            self.info_panel = Panel(text)
-            self.progress_group.renderables.insert(0, self.info_panel)
-        else:
-            self.info_panel.renderable = text
+        if self.enabled:
+            from rich.panel import Panel
+            if self.info_panel is None:
+                self.info_panel = Panel(text)
+                self.progress_group.renderables.insert(0, self.info_panel)
+            else:
+                self.info_panel.renderable = text
 
     def start(self):
         if self.enabled and not self._active:
             self._active = True
             if self._is_main_manager:
-                return self.live_context.__enter__()
+                self.live_context.__enter__()
+        return self
 
     def stop(self, **kw):
+        ret = None
         if self.enabled and self._active:
             if not kw:
                 kw['exc_type'] = None
@@ -421,10 +448,8 @@ class _RichProgIterManager(BaseProgIterManager):
                 MAIN_RICH_PMAN = None
                 ret = self.live_context.__exit__(**kw)
                 self._is_main_manager = False
-            else:
-                ret = None
             self._active = False
-            return ret
+        return ret
 
 
 class _ProgIterManager(BaseProgIterManager):
@@ -449,6 +474,7 @@ class _ProgIterManager(BaseProgIterManager):
             progkw['verbose'] = self.default_progkw.get('verbose', 1)
         if True:
             # Change all other - now outer - progiters to verbose=3 mode
+            self.prog_iters = [p for p in self.prog_iters if not p.finished]
             for other in self.prog_iters:
                 other.ensure_newline()
                 if other.enabled:
@@ -461,13 +487,15 @@ class _ProgIterManager(BaseProgIterManager):
         return prog
 
     def update_info(self, text):
-        if len(self.prog_iters) == 0:
-            # if self._cursor_at_newline:
-            print('+ --- Info --- +')
-            print(text)
-            print('+ ------------ +')
-        else:
-            self.prog_iters[0].update_info(text)
+        if self.enabled:
+            self.prog_iters = [p for p in self.prog_iters if not p.finished]
+            if len(self.prog_iters) == 0:
+                # if self._cursor_at_newline:
+                print('+ --- Info --- +')
+                print(text)
+                print('+ ------------ +')
+            else:
+                self.prog_iters[0].update_info(text)
 
 
 class ProgressManager(BaseProgIterManager):
@@ -627,9 +655,10 @@ class ProgressManager(BaseProgIterManager):
 
     def start(self):
         self.backend.start()
+        return self
 
     def stop(self, *args, **kwargs):
-        self.backend.stop(*args, **kwargs)
+        return self.backend.stop(*args, **kwargs)
 
     @property
     def _is_main_manager(self):
