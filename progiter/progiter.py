@@ -239,7 +239,7 @@ class _TQDMCompat(object):
                                  for key in postfix.keys())
         self.set_postfix_str(postfix, refresh=refresh)
 
-    def set_postfix(self, postfix, **kwargs):
+    def set_postfix(self, postfix=None, **kwargs):
         if isinstance(postfix, str):
             self.set_postfix_str(postfix, **kwargs)
         else:
@@ -650,7 +650,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                 a chainable self-reference
         """
         if not self.enabled:
-            return
+            return self
 
         self._reset_internals()
 
@@ -660,7 +660,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._curr_measurement = Measurement(self._iter_idx, self._start_time)
 
         # use last few times to compute a more stable average rate
-        if self.eta_window is not None:
+        if self.eta_window is not None and self.eta_window > 0:
             self._measurements = collections.deque([
                 self._curr_measurement
             ], maxlen=self.eta_window)
@@ -843,19 +843,28 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
                                    self._display_measurement.time)
 
         # Estimate rate of progress
-        if self.eta_window is None:
-            self._iters_per_second = self._curr_measurement.idx / self._total_seconds
+        if self.eta_window is None or self.eta_window <= 0:
+            elapsed = self._total_seconds
+            completed = self._curr_measurement.idx - self.initial
         else:
             # Smooth out rate with a window
             oldest_idx, oldest_time = self._measurements[0]
             latest_idx, latest_time = self._measurements[-1]
-            self._iters_per_second =  ((latest_idx - oldest_idx) /
-                                       (latest_time - oldest_time))
+            elapsed = latest_time - oldest_time
+            completed = latest_idx - oldest_idx
+
+        if elapsed > 0:
+            self._iters_per_second = completed / elapsed
+        else:
+            self._iters_per_second = 0.0
 
         if self.total is not None:
             # Estimate time remaining if total is given
             iters_left = self.total - self._curr_measurement.idx
-            est_eta = iters_left / self._iters_per_second
+            if self._iters_per_second:
+                est_eta = iters_left / self._iters_per_second
+            else:
+                est_eta = None
             self._est_seconds_left = est_eta
 
         # Adjust frequency to stay within time_thresh
