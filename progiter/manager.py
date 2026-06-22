@@ -731,13 +731,13 @@ class _RichProgIterManager(BaseProgIterManager):
                 SpinnerColumn(),
                 BarColumn(),
                 "[progress.percentage]{task.percentage:>3.0f}%",
-                rich.progress.MofNCompleteColumn(),
+                rich_progress_mod.MofNCompleteColumn(),
                 # rich.progress.TransferSpeedColumn(),
                 ProgressRateColumn(),
                 'eta',
-                rich.progress.TimeRemainingColumn(),
+                rich_progress_mod.TimeRemainingColumn(),
                 'total',
-                rich.progress.TimeElapsedColumn(),
+                rich_progress_mod.TimeElapsedColumn(),
             )
             self.info_panel = None
             self.progress_group = Group(
