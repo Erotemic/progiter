@@ -101,3 +101,105 @@ def test_multiple_managers_tree():
                 yield None
 
     list(_nested_loop(max_depth=3))
+
+
+def test_backend_auto_and_noop_modes():
+    from progiter import manager
+
+    pman = manager.ProgressManager(backend='auto', auto_policy='progiter')
+    assert pman.backend_key == 'progiter'
+
+    pman = manager.ProgressManager(backend='auto', enabled=False)
+    assert pman.backend_key == 'none'
+    assert list(pman.progiter(range(3))) == [0, 1, 2]
+    assert pman.update_info('silent') is None
+
+
+def test_context_manager_returns_public_manager():
+    from progiter import manager
+
+    pman = manager.ProgressManager(backend='progiter', enabled=False)
+    with pman as active:
+        assert active is pman
+
+
+def test_explicit_rich_does_not_fallback(monkeypatch):
+    from progiter import manager
+    import builtins
+    import pytest
+
+    real_import = builtins.__import__
+
+    def blocked_import(name, *args, **kwargs):
+        if name == 'rich' or name.startswith('rich.'):
+            raise ImportError('blocked rich import')
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, '__import__', blocked_import)
+    with pytest.raises(ImportError):
+        manager.ProgressManager(backend='rich')
+
+
+def test_auto_rich_fallback_when_unavailable(monkeypatch):
+    from progiter import manager
+
+    monkeypatch.setattr(manager, '_rich_is_available', lambda: False)
+    pman = manager.ProgressManager(backend='auto', auto_policy='rich')
+    assert pman.backend_key == 'progiter'
+
+
+def test_stopall_is_exception_safe(monkeypatch):
+    from progiter import manager
+
+    class Broken:
+        backend_key = 'broken'
+
+        def stop(self):
+            raise RuntimeError('expected cleanup failure')
+
+    broken = Broken()
+    manager.LIVE_PROGRESS_MANAGERS[id(broken)] = broken
+    errors = manager.ProgressManager.stopall(backend='broken')
+    assert len(errors) == 1
+    assert isinstance(errors[0], RuntimeError)
+
+
+def test_rich_self_managed_loop_stops():
+    try:
+        import rich  # NOQA
+    except ImportError:
+        import pytest
+        pytest.skip('no rich')
+    from progiter import manager
+
+    pman = manager.ProgressManager(backend='rich')
+    assert pman.backend._active is False
+    assert list(pman.progiter(range(3), freq=100, time_thresh=999)) == [0, 1, 2]
+    assert pman.backend._active is False
+
+
+def test_rich_unknown_total_policy_and_throttling(monkeypatch):
+    try:
+        import rich  # NOQA
+    except ImportError:
+        import pytest
+        pytest.skip('no rich')
+    from progiter import manager
+
+    pman = manager.ProgressManager(backend='rich')
+    calls = []
+    original_update = pman.backend.rich_progress.update
+
+    def counting_update(*args, **kwargs):
+        calls.append((args, kwargs))
+        return original_update(*args, **kwargs)
+
+    monkeypatch.setattr(pman.backend.rich_progress, 'update', counting_update)
+    prog = pman.progiter(
+        iter(range(5)), total=None, freq=100, time_thresh=999,
+        unknown_total_policy='complete')
+    assert list(prog) == [0, 1, 2, 3, 4]
+    assert prog._completed == 5
+    assert prog.finished is True
+    # We should not update rich once per item when throttling is active.
+    assert len(calls) < 5
