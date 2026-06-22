@@ -74,16 +74,21 @@ Example:
     check primes  768/1000...Biggest prime so far: 761 rate=136480.12 Hz, eta=0:00:00, total=0:00:00, wall=2020-10-23 17:27 EST
     check primes 1000/1000...Biggest prime so far: 997 rate=115214.95 Hz, eta=0:00:00, total=0:00:00, wall=2020-10-23 17:27 EST
 """
+from __future__ import annotations
+
 import sys
 import time
 import collections
 from itertools import islice
+from types import TracebackType
+from typing import Any, Callable, Iterable, Iterator, Literal, Type, cast
+
 
 __all__ = [
     'ProgIter',
 ]
 
-default_timer = time.perf_counter  # type: Callable
+default_timer: Callable[[], float] = time.perf_counter
 
 # A measurment takes place at a given iteration and posixtime.
 Measurement = collections.namedtuple('Measurement', ['idx', 'time'])
@@ -93,7 +98,7 @@ CLEAR_BEFORE = '\r'
 AT_END = '\n'
 
 
-def _infer_length(iterable):
+def _infer_length(iterable: Any) -> int | None:
     """
     Try and infer the length using the PEP 424 length hint if available.
 
@@ -128,8 +133,11 @@ class _TQDMCompat(object):
     Base class for ProgIter that implements a restricted TQDM Compatibility API
     """
 
+    desc: str | None
+
+
     @classmethod
-    def write(cls, s, file=None, end='\n', nolock=False):
+    def write(cls, s: str, file: Any | None = None, end: str = '\n', nolock: bool = False) -> None:
         """
         simply writes to stdout
 
@@ -143,7 +151,7 @@ class _TQDMCompat(object):
         fp.write(s)
         fp.write(end)
 
-    def set_description(self, desc=None, refresh=True):
+    def set_description(self: Any, desc: str | None = None, refresh: bool = True) -> None:
         """
         tqdm api compatibility. Changes the description of progress
 
@@ -154,7 +162,7 @@ class _TQDMCompat(object):
         if refresh:
             self.refresh()
 
-    def set_description_str(self, desc=None, refresh=True):
+    def set_description_str(self: Any, desc: str | None = None, refresh: bool = True) -> None:
         """
         tqdm api compatibility. Changes the description of progress
 
@@ -163,27 +171,27 @@ class _TQDMCompat(object):
         """
         self.set_description(desc, refresh)
 
-    def update(self, n=1):
+    def update(self: Any, n: int = 1) -> None:
         """ alias of `step` for tqdm compatibility """
         self.step(n)
 
-    def close(self):
+    def close(self: Any) -> None:
         """ alias of `end` for tqdm compatibility """
         self.end()
 
-    def unpause(self):
+    def unpause(self) -> None:
         """ tqdm api compatibility. does nothing """
         pass
 
-    def moveto(self, n):
+    def moveto(self, n: Any) -> None:
         """ tqdm api compatibility. does nothing """
         pass
 
-    def clear(self, nolock=False):
+    def clear(self, nolock: bool = False) -> None:
         """ tqdm api compatibility. does nothing """
         pass
 
-    def refresh(self, nolock=False):
+    def refresh(self: Any, nolock: bool = False) -> None:
         """
         tqdm api compatibility. redisplays message
         (can cause a message to print twice)
@@ -193,7 +201,7 @@ class _TQDMCompat(object):
         self.display_message()
 
     @property
-    def pos(self):
+    def pos(self) -> int:
         """
         Returns:
             int
@@ -201,16 +209,16 @@ class _TQDMCompat(object):
         return 0
 
     @classmethod
-    def set_lock(cls, lock):
+    def set_lock(cls, lock: Any) -> None:
         """ tqdm api compatibility. does nothing """
         pass
 
     @classmethod
-    def get_lock(cls):
+    def get_lock(cls) -> None:
         """ tqdm api compatibility. does nothing """
         pass
 
-    def set_postfix_dict(self, ordered_dict=None, refresh=True, **kwargs):
+    def set_postfix_dict(self: Any, ordered_dict: dict[Any, Any] | None = None, refresh: bool = True, **kwargs: Any) -> None:
         """
         tqdm api compatibility. calls set_extra
 
@@ -235,23 +243,23 @@ class _TQDMCompat(object):
                 postfix[key] = str(postfix[key])
             # Else if it's a string, don't need to preprocess anything
         # Stitch together to get the final postfix
-        postfix = ', '.join(key + '=' + postfix[key].strip()
+        postfix_text = ', '.join(key + '=' + postfix[key].strip()
                                  for key in postfix.keys())
-        self.set_postfix_str(postfix, refresh=refresh)
+        self.set_postfix_str(postfix_text, refresh=refresh)
 
-    def set_postfix(self, postfix=None, **kwargs):
+    def set_postfix(self: Any, postfix: Any = None, **kwargs: Any) -> None:
         if isinstance(postfix, str):
             self.set_postfix_str(postfix, **kwargs)
         else:
             self.set_postfix_dict(ordered_dict=postfix, **kwargs)
 
-    def set_postfix_str(self, s='', refresh=True):
+    def set_postfix_str(self: Any, s: str = '', refresh: bool = True) -> None:
         """ tqdm api compatibility. calls set_extra """
         self.set_extra(str(s))
         if refresh:
             self.refresh()
 
-    def reset(self, total=None):
+    def reset(self: Any, total: int | None = None) -> None:
         """
         Resets the progress to the start optionally with a new length
         """
@@ -259,18 +267,18 @@ class _TQDMCompat(object):
         self._reset_internals()
 
     @property
-    def disable(self):
+    def disable(self: Any) -> bool:
         return not self.enabled
 
     @property
-    def n(self):
+    def n(self: Any) -> int:
         """
         Alias for `self._iter_idx`
         """
         return self._iter_idx
 
     @n.setter
-    def n(self, value):
+    def n(self: Any, value: int) -> None:
         """
         TQDM allows the user to set 'n' to control number of iterations
         """
@@ -285,22 +293,22 @@ class _BackwardsCompat(object):
 
     # Backwards Compatibility API
     @property
-    def length(self):
+    def length(self: Any) -> int | None:
         """ alias of total """
         return self.total
 
     @property
-    def label(self):
+    def label(self: Any) -> str | None:
         """ alias of desc """
         return self.desc
 
-    def start(self):  # nocover
+    def start(self: Any) -> Any:  # nocover
         """
         Alias of :func:`ProgIter.begin`
         """
         return self.begin()
 
-    def stop(self):  # nocover
+    def stop(self: Any) -> Any:  # nocover
         """
         Alias of :func:`ProgIter.end`
         """
@@ -343,13 +351,42 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         >>>     is_prime(n)
         100/100... rate=... Hz, total=..., wall=...
     """
-    def __init__(self, iterable=None, desc=None, total=None, freq=1,
-                 initial=0, eta_window=64, clearline=True, adjust=True,
-                 time_thresh=2.0, show_percent=True, show_times=True,
-                 show_rate=True, show_eta=True, show_total=True,
-                 show_wall=False, enabled=True, verbose=None, stream=None,
-                 chunksize=None, rel_adjust_limit=4.0, homogeneous='auto',
-                 timer=None, **kwargs):
+
+    stream: Any
+    iterable: Any
+    desc: str | None
+    total: int | None
+    freq: int
+    initial: int
+    enabled: bool
+    adjust: bool
+    show_percent: bool
+    show_times: bool
+    show_rate: bool
+    show_eta: bool
+    show_total: bool
+    show_wall: bool
+    eta_window: int | None
+    time_thresh: float
+    clearline: bool
+    chunksize: int | None
+    rel_adjust_limit: float
+    extra: Any
+    started: bool
+    finished: bool
+    homogeneous: bool | str
+
+    def __init__(self, iterable: Iterable[Any] | None = None, desc: str | None = None,
+                 total: int | None = None, freq: int = 1, initial: int = 0,
+                 eta_window: int | None = 64, clearline: bool = True,
+                 adjust: bool = True, time_thresh: float = 2.0,
+                 show_percent: bool = True, show_times: bool = True,
+                 show_rate: bool = True, show_eta: bool = True,
+                 show_total: bool = True, show_wall: bool = False,
+                 enabled: bool = True, verbose: int | None = None,
+                 stream: Any | None = None, chunksize: int | None = None,
+                 rel_adjust_limit: float = 4.0, homogeneous: bool | str = 'auto',
+                 timer: Callable[[], float] | None = None, **kwargs: Any) -> None:
         """
         See attributes more arg information
 
@@ -447,11 +484,11 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             if verbose <= 0:  # nocover
                 enabled = False
             elif verbose == 1:  # nocover
-                enabled, clearline, adjust = 1, 1, 1
+                enabled, clearline, adjust = True, True, True
             elif verbose == 2:  # nocover
-                enabled, clearline, adjust = 1, 0, 1
+                enabled, clearline, adjust = True, False, True
             elif verbose >= 3:  # nocover
-                enabled, clearline, adjust = 1, 0, 0
+                enabled, clearline, adjust = True, False, False
 
         # Potential new additions to the API
         self._microseconds = kwargs.pop('microseconds', False)
@@ -502,7 +539,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.chunksize = chunksize
         self.rel_adjust_limit = rel_adjust_limit
         self.extra = ''
-        self._extra_fn = None
+        self._extra_fn: Callable[[], Any] | None = None
         self.started = False
         self.finished = False
 
@@ -511,7 +548,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._timer = timer
 
         self.homogeneous = homogeneous
-        self._likely_homogeneous = None
+        self._likely_homogeneous: bool | None = None
 
         # indicates if the cursor is currently at the start of a line (True) or
         # if characters have been written with no newline yet.
@@ -521,7 +558,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         self._reset_internals()
 
-    def __call__(self, iterable):
+    def __call__(self, iterable: Iterable[Any]) -> Iterator[Any]:
         """
         Overwrites the current iterator with iterable and starts iterating on
         it.
@@ -538,7 +575,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.iterable = iterable
         return iter(self)
 
-    def __enter__(self):
+    def __enter__(self) -> ProgIter:
         """
         Returns:
             ProgIter
@@ -552,7 +589,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self.begin()
         return self
 
-    def __exit__(self, ex_type, ex_value, ex_traceback):
+    def __exit__(self, ex_type: Type[BaseException] | None, ex_value: BaseException | None, ex_traceback: TracebackType | None) -> Literal[False] | None:
         """
         Args:
             ex_type (Type[BaseException] | None):
@@ -566,8 +603,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             return False
         else:
             self.end()
+            return None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """
         Returns:
             Iterable
@@ -577,7 +615,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         else:
             return self._iterate()
 
-    def set_extra(self, extra):
+    def set_extra(self, extra: str | Callable[[], Any]) -> None:
         """
         specify a custom info appended to the end of the next message
 
@@ -597,12 +635,12 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
              100.00% 2/2...processesing num 200
         """
         if callable(extra):
-            self._extra_fn = extra
+            self._extra_fn = cast(Callable[[], Any], extra)
         else:
             self._extra_fn = None
         self.extra = extra
 
-    def _reset_internals(self):
+    def _reset_internals(self) -> None:
         """
         Initialize all variables used in the internal state
         """
@@ -629,7 +667,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._next_measure_idx = self._iter_idx + self.freq
 
         # Primary estimates
-        self._est_seconds_left = None
+        self._est_seconds_left: float | None = None
         self._iters_per_second = 0.0
 
         # hack flag that should be refactored and removed used to ensure the
@@ -638,7 +676,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         self._update_message_template()
 
-    def begin(self):
+    def begin(self) -> ProgIter:
         """
         Initializes information used to measure progress
 
@@ -682,7 +720,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._force_next_display = self.freq == 1
         return self
 
-    def end(self):
+    def end(self) -> None:
         """
         Signals that iteration has ended and displays the final message.
 
@@ -695,13 +733,13 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # Write the final progress line if it was not written in the loop
         if self._iter_idx != self._display_measurement.idx:
             self._measure_time()
-            self._est_seconds_left = 0
+            self._est_seconds_left = 0.0
             self.display_message()
         self.ensure_newline()
         self._cursor_at_newline = True
         self.finished = True
 
-    def _iterate(self):
+    def _iterate(self) -> Iterator[Any]:
         """ iterates with progress """
         if not self.started:
             self.begin()
@@ -712,7 +750,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # checks need more calculation. This is worth duplicating code for.
 
         if self.adjust:
-            homogeneous = self.homogeneous
+            homogeneous: Any = self.homogeneous
             if homogeneous == 'auto':
                 yield from self._homogeneous_check(gen)
                 homogeneous = self._likely_homogeneous
@@ -739,7 +777,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         self.end()
 
-    def _homogeneous_check(self, gen):
+    def _homogeneous_check(self, gen: Iterable[tuple[int, Any]]) -> Iterator[Any]:
         # NOTE: We could have a more complex heuristic with negligable
         # overhead and more robustness that checks every n iterations
         # that such that the time call overhead would be negligable.
@@ -757,7 +795,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # is only .01% of the total loop time
         overhead_threshold = 50e-9 * 10_000
 
-        slowest = 0
+        slowest = 0.0
         for self._iter_idx, item in islice(gen, num_initial_steps):
             yield item
             self._slow_path_step_body()
@@ -766,14 +804,14 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # We are moving fast, take the faster path
         self._likely_homogeneous = (slowest < overhead_threshold)
 
-    def _slow_path_step_body(self, force=False):
+    def _slow_path_step_body(self, force: bool = False) -> None:
         # In the slow path, we don't make any assumption about how long
         # iterations take. So on every iteration we must measure the time
         self._measure_time()
         if force or (self._display_timedelta >= self.time_thresh):
             self.display_message()
 
-    def step(self, inc=1, force=False):
+    def step(self, inc: int = 1, force: bool = False) -> None:
         """
         Manually step progress update, either directly or by an increment.
 
@@ -803,7 +841,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._iter_idx += inc
         self._slow_path_step_body(force=force)
 
-    def _adjust_frequency(self):
+    def _adjust_frequency(self) -> None:
         # Adjust frequency so the next print will not happen until
         # approximately `time_thresh` seconds have passed as estimated by
         # iter_idx.
@@ -819,7 +857,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         min_freq = int(self.freq // rel_limit)
         self.freq = max(min(new_freq, max_freq), min_freq, 1)
 
-    def _measure_time(self):
+    def _measure_time(self) -> None:
         """
         Measures the current time and update info about how long we've been
         waiting since the last iteration was displayed.
@@ -875,10 +913,10 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         # Mark when our next measurement should be in "fast mode"
         self._next_measure_idx = self._iter_idx + self.freq
 
-    def _update_message_template(self):
+    def _update_message_template(self) -> None:
         self._msg_fmtstr = self._build_message_template()
 
-    def _build_message_template(self):
+    def _build_message_template(self) -> tuple[str, str, str]:
         """
         Defines the template for the progress line
 
@@ -906,7 +944,9 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             if self.total == 0:
                 n_chrs = 1
             else:
-                n_chrs = int(floor(log10(float(self.total))) + 1)
+                total = self.total
+                assert total is not None
+                n_chrs = int(floor(log10(float(total))) + 1)
 
         if self.chunksize and not length_unknown:
             msg_body = [
@@ -952,7 +992,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             parts = ('', ''.join(msg_body), AT_END)
         return parts
 
-    def format_message(self):
+    def format_message(self) -> str:
         """
         Exists only for backwards compatibility.
 
@@ -963,7 +1003,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         """
         return ''.join(self.format_message_parts())
 
-    def format_message_parts(self):
+    def format_message_parts(self) -> tuple[str, str, str]:
         r"""
         builds a formatted progress message with the current values.
         This contains the special characters needed to clear lines.
@@ -1040,7 +1080,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
 
         return before, msg, after
 
-    def ensure_newline(self):
+    def ensure_newline(self) -> None:
         """
         use before any custom printing when using the progress iter to ensure
         your print statement starts on a new line instead of at the end of a
@@ -1076,7 +1116,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
             self._prev_msg_len = 0
             self._cursor_at_newline = True
 
-    def display_message(self):
+    def display_message(self) -> None:
         """
         Writes current progress to the output stream
         """
@@ -1098,7 +1138,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         self._display_timedelta = 0
         self._force_next_display = False
 
-    def _tryflush(self):
+    def _tryflush(self) -> None:
         """ flush to the internal stream """
         try:
             # flush sometimes causes issues in IPython notebooks
@@ -1106,7 +1146,7 @@ class ProgIter(_TQDMCompat, _BackwardsCompat):
         except IOError:  # nocover
             pass
 
-    def _write(self, msg):
+    def _write(self, msg: str) -> None:
         """
         write to the internal stream
 

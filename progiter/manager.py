@@ -60,12 +60,16 @@ Example:
     >>>             for j3 in pman.progiter(range(100), desc=f'shutdown inner loop {i}', transient=True):
     >>>                 time.sleep(delay / 3)
 """
+from __future__ import annotations
+
 import contextvars
 import importlib.util
 import os
 import sys
 import time
 import weakref
+from types import TracebackType
+from typing import Any, Iterable, Iterator, Type
 
 from progiter.progiter import ProgIter
 
@@ -73,7 +77,7 @@ from progiter.progiter import ProgIter
 __all__ = ['ProgressManager']
 
 
-def _coerce_envflag(value):
+def _coerce_envflag(value: Any) -> bool:
     """
     Coerce common environment variable truthy / falsy strings.
 
@@ -94,7 +98,7 @@ def _coerce_envflag(value):
     return bool(value)
 
 
-def _coerce_choice(value, choices, name):
+def _coerce_choice(value: Any, choices: set[str], name: str) -> str:
     """Validate a small string-valued policy."""
     value = str(value).strip().lower()
     if value not in choices:
@@ -102,7 +106,7 @@ def _coerce_choice(value, choices, name):
     return value
 
 
-def _rich_is_available():
+def _rich_is_available() -> bool:
     """
     Check whether rich is importable without importing it.
 
@@ -113,7 +117,7 @@ def _rich_is_available():
     return importlib.util.find_spec('rich') is not None
 
 
-def _detect_notebook():
+def _detect_notebook() -> bool:
     """
     Best-effort notebook detection used only by backend='auto'.
 
@@ -122,7 +126,8 @@ def _detect_notebook():
         >>> assert isinstance(_detect_notebook(), bool)
     """
     try:
-        get_ipython = __builtins__.get('get_ipython')  # type: ignore[attr-defined]
+        builtins_obj: Any = __builtins__
+        get_ipython = builtins_obj.get('get_ipython')
     except AttributeError:
         get_ipython = getattr(__builtins__, 'get_ipython', None)
     if get_ipython is None:
@@ -137,7 +142,7 @@ def _detect_notebook():
     return shell_name in {'ZMQInteractiveShell', 'Shell'}
 
 
-def _stream_is_tty(stream=None):
+def _stream_is_tty(stream: Any = None) -> bool:
     """
     Check if a stream appears to be interactive.
 
@@ -158,7 +163,7 @@ def _stream_is_tty(stream=None):
 
 # If truthy disable all threaded rich options
 # In backend='auto' this now means avoiding threaded rich options
-PROGITER_NOTHREAD = os.environ.get('PROGITER_NOTHREAD', 'auto')
+PROGITER_NOTHREAD: bool | str = os.environ.get('PROGITER_NOTHREAD', 'auto')
 if str(PROGITER_NOTHREAD).strip().lower() == 'auto':
     # Use rich outside of slurm
     PROGITER_NOTHREAD = bool(os.environ.get('SLURM_JOBID', ''))
@@ -166,15 +171,15 @@ else:
     PROGITER_NOTHREAD = _coerce_envflag(PROGITER_NOTHREAD)
 
 
-LIVE_PROGRESS_MANAGERS = weakref.WeakValueDictionary()
-_RICH_MANAGER_STACKVAR = contextvars.ContextVar('progiter_rich_manager_stack', default=())
+LIVE_PROGRESS_MANAGERS: weakref.WeakValueDictionary[int, Any] = weakref.WeakValueDictionary()
+_RICH_MANAGER_STACKVAR: contextvars.ContextVar[tuple[Any, ...]] = contextvars.ContextVar('progiter_rich_manager_stack', default=())
 
 
-def _get_rich_manager_stack():
+def _get_rich_manager_stack() -> tuple[Any, ...]:
     return _RICH_MANAGER_STACKVAR.get()
 
 
-def _get_current_rich_manager():
+def _get_current_rich_manager() -> Any | None:
     """
     Return the current active rich manager for this context.
 
@@ -191,17 +196,17 @@ def _get_current_rich_manager():
     return None
 
 
-def _push_current_rich_manager(manager):
+def _push_current_rich_manager(manager: Any) -> None:
     stack = tuple(m for m in _get_rich_manager_stack() if m is not manager)
     _RICH_MANAGER_STACKVAR.set(stack + (manager,))
 
 
-def _pop_current_rich_manager(manager):
+def _pop_current_rich_manager(manager: Any) -> None:
     stack = tuple(m for m in _get_rich_manager_stack() if m is not manager)
     _RICH_MANAGER_STACKVAR.set(stack)
 
 
-def _normalize_progkw(default_progkw, verbose, kw):
+def _normalize_progkw(default_progkw: dict[str, Any], verbose: Any, kw: dict[str, Any]) -> dict[str, Any]:
     """
     Merge manager defaults with per-progress keyword arguments.
 
@@ -221,7 +226,7 @@ def _normalize_progkw(default_progkw, verbose, kw):
     return progkw
 
 
-def _choose_auto_backend(auto_policy='auto', stream=None, enabled=True):
+def _choose_auto_backend(auto_policy: str = 'auto', stream: Any = None, enabled: bool = True) -> str:
     """
     Choose a backend for ``backend='auto'``.
 
@@ -253,10 +258,14 @@ class ManagedProgIter(ProgIter):
     Simple subclass of ProgIter to allowed it to be managed.
     """
 
-    def _set_manager(self, manager):
+    info_text: Any
+    manager: Any
+
+
+    def _set_manager(self, manager: Any) -> None:
         self.manager = weakref.proxy(manager)
 
-    def update_info(self, text):
+    def update_info(self, text: Any) -> None:
         if not self.enabled:
             return None
         self.info_text = text
@@ -270,7 +279,7 @@ class ManagedProgIter(ProgIter):
         # self.display_message()
         return None
 
-    def update(self, n=1):
+    def update(self, n: int = 1) -> None:
         if not self.started:
             self.begin()
         manager = getattr(self, 'manager', None)
@@ -290,7 +299,7 @@ class ManagedProgIter(ProgIter):
                 ...
         super().update(n=n)
 
-    def end(self):
+    def end(self) -> Any:
         try:
             ret = super().end()
         finally:
@@ -304,7 +313,7 @@ class ManagedProgIter(ProgIter):
                     ...
         return ret
 
-    def display_message(self):
+    def display_message(self) -> None:
         super().display_message()
 
 
@@ -339,13 +348,35 @@ class RichProgIter:
 
     """
 
-    def __init__(self, iterable=None, desc=None, total=None, freq=1, initial=0,
-                 eta_window=64, clearline=True, adjust=True, time_thresh=2.0,
-                 show_times=True, show_wall=False, enabled=True, verbose=None,
-                 stream=None, chunksize=None, rel_adjust_limit=4.0,
-                 transient=False, manager=None, spinner=False,
-                 unknown_total_policy='complete', refresh_policy='auto',
-                 _self_managed=False, **kwargs):
+    manager: Any
+    iterable: Any
+    enabled: bool
+    spinner: bool
+    total: int | None
+    desc: Any | None
+    task_id: Any
+    transient: bool
+    extra: Any | None
+    initial: int
+    started: bool
+    finished: bool
+    freq: int
+    time_thresh: float | None
+    unknown_total_policy: str
+    refresh_policy: str
+
+
+    def __init__(self, iterable: Any = None, desc: Any | None = None,
+                 total: int | None = None, freq: int = 1, initial: int = 0,
+                 eta_window: int = 64, clearline: bool = True, adjust: bool = True,
+                 time_thresh: float | None = 2.0, show_times: bool = True,
+                 show_wall: bool = False, enabled: bool = True,
+                 verbose: Any | None = None, stream: Any | None = None,
+                 chunksize: Any | None = None, rel_adjust_limit: float = 4.0,
+                 transient: bool = False, manager: Any | None = None,
+                 spinner: bool = False, unknown_total_policy: str = 'complete',
+                 refresh_policy: str = 'auto', _self_managed: bool = False,
+                 **kwargs: Any) -> None:
 
         unhandled = {
             'eta_window', 'clearline', 'adjust', 'time_thresh', 'show_times',
@@ -412,20 +443,20 @@ class RichProgIter:
         else:
             self.task_id = None
 
-    def start(self):
+    def start(self) -> Any:
         return self.begin()
 
-    def stop(self):
+    def stop(self) -> Any:
         return self.end()
 
-    def begin(self):
+    def begin(self) -> Any:
         if not self.started:
             if self._self_managed:
                 self.manager.start()
             self.started = True
         return self
 
-    def _should_flush(self, force=False):
+    def _should_flush(self, force: bool = False) -> bool:
         if force:
             return True
         if self.refresh_policy == 'manual':
@@ -438,7 +469,7 @@ class RichProgIter:
             return True
         return (time.monotonic() - self._last_flush_time) >= self.time_thresh
 
-    def _flush(self, force=False, refresh=False):
+    def _flush(self, force: bool = False, refresh: bool = False) -> None:
         if not self.enabled or self._removed or not self._pending_advance:
             return None
         if not self._should_flush(force=force):
@@ -451,7 +482,7 @@ class RichProgIter:
             self.task_id, advance=advance, refresh=bool(refresh or force))
         return None
 
-    def _finalize_unknown_total(self):
+    def _finalize_unknown_total(self) -> None:
         if not self.enabled or self._removed or self.total is not None:
             return None
         if self.unknown_total_policy == 'complete':
@@ -459,7 +490,7 @@ class RichProgIter:
                 self.task_id, total=self._completed, completed=self._completed)
         return None
 
-    def end(self):
+    def end(self) -> Any:
         if not self.finished:
             self._flush(force=True, refresh=True)
             if not self.transient:
@@ -480,7 +511,7 @@ class RichProgIter:
                 ...
         return self
 
-    def update(self, n=1):
+    def update(self, n: int = 1) -> None:
         if not self.started:
             self.begin()
         self._completed += n
@@ -490,7 +521,7 @@ class RichProgIter:
 
     step = update
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         if not self.enabled:
             self.begin()
             try:
@@ -506,7 +537,7 @@ class RichProgIter:
             finally:
                 self.stop()
 
-    def remove(self):
+    def remove(self) -> None:
         """
         Remove this progress task from its rich manager
         """
@@ -516,7 +547,7 @@ class RichProgIter:
             self._removed = True
         return None
 
-    def update_info(self, text):
+    def update_info(self, text: Any) -> None:
         if self.enabled:
             # FIXME: remove circular reference
             try:
@@ -525,10 +556,10 @@ class RichProgIter:
                 ...
         return None
 
-    def ensure_newline(self):
+    def ensure_newline(self) -> None:
         ...
 
-    def set_postfix_str(self, text, refresh=True):
+    def set_postfix_str(self, text: str, refresh: bool = True) -> None:
         self.extra = text
         parts = [self.desc] if self.desc is not None else []
         if self.extra is not None:
@@ -545,25 +576,25 @@ class RichProgIter:
 
 
 class BaseProgIterManager:
-    def new(self, *args, **kw):
-        return self.progiter(*args, **kw)
+    def new(self, *args: Any, **kw: Any) -> Any:
+        return getattr(self, 'progiter')(*args, **kw)
 
-    def __call__(self, *args, **kw):
-        return self.progiter(*args, **kw)
+    def __call__(self, *args: Any, **kw: Any) -> Any:
+        return getattr(self, 'progiter')(*args, **kw)
 
-    def start(self):
+    def start(self) -> Any:
         return self
 
-    def begin(self):
+    def begin(self) -> Any:
         return self.start()
 
-    def stop(self, **kwargs):
+    def stop(self, **kwargs: Any) -> Any:
         ...
 
-    def __enter__(self):
+    def __enter__(self) -> Any:
         return self.start()
 
-    def __exit__(self, exc_type=None, exc_val=None, exc_tb=None):
+    def __exit__(self, exc_type: Type[BaseException] | None = None, exc_val: BaseException | None = None, exc_tb: TracebackType | None = None) -> Any:
         return self.stop(exc_type=exc_type, exc_val=exc_val, exc_tb=exc_tb)
 
 
@@ -588,7 +619,17 @@ class _RichProgIterManager(BaseProgIterManager):
         >>>         ...
     """
 
-    def __init__(self, **kwargs):
+    prog_iters: list[Any]
+    enabled: bool
+    info_panel: Any
+    rich_progress: Any
+    default_progkw: dict[str, Any]
+    live_context: Any
+    progress_group: Any
+    _is_main_manager: Any
+
+
+    def __init__(self, **kwargs: Any) -> None:
         self.prog_iters = []
         self.enabled = kwargs.pop('enabled', True)
         self.info_panel = None
@@ -613,17 +654,18 @@ class _RichProgIterManager(BaseProgIterManager):
     #     if self._active:
     #         self.stop()
 
-    def _deregister_progiter(self, prog):
+    def _deregister_progiter(self, prog: Any) -> None:
         self.prog_iters = [p for p in self.prog_iters if p is not prog and not p.finished]
 
-    def _ensure_attached(self):
+    def _ensure_attached(self) -> None:
         if self.rich_progress is None:
             self.setup_rich()
         elif not self._is_main_manager and not self._active and _get_current_rich_manager() is None:
             self.setup_rich()
 
-    def progiter(self, iterable=None, total=None, desc=None, transient=False,
-                 spinner=False, verbose='auto', **kw):
+    def progiter(self, iterable: Iterable[Any] | None = None, total: int | None = None,
+                 desc: Any | None = None, transient: bool = False,
+                 spinner: bool = False, verbose: Any = 'auto', **kw: Any) -> Any:
         self._ensure_attached()
         # Fixme remove circular ref
         # Historical note: keep avoiding assignment onto rich_progress.pman;
@@ -641,15 +683,20 @@ class _RichProgIterManager(BaseProgIterManager):
         self.prog_iters.append(prog)
         return prog
 
-    def setup_rich(self):
-        import rich
-        import rich.progress
-        from rich.console import Group
-        from rich.live import Live
-        from rich.progress import BarColumn, TextColumn
-        from rich.progress import Progress as richProgress
-        from rich.progress import SpinnerColumn
-        from rich.progress import ProgressColumn, Text
+    def setup_rich(self) -> None:
+        rich = __import__('rich')
+        rich_progress_mod = __import__('rich.progress', fromlist=[''])
+        rich_console_mod = __import__('rich.console', fromlist=[''])
+        rich_live_mod = __import__('rich.live', fromlist=[''])
+
+        Group = rich_console_mod.Group
+        Live = rich_live_mod.Live
+        BarColumn = rich_progress_mod.BarColumn
+        TextColumn = rich_progress_mod.TextColumn
+        richProgress = rich_progress_mod.Progress
+        SpinnerColumn = rich_progress_mod.SpinnerColumn
+        ProgressColumnBase: Any = rich_progress_mod.ProgressColumn
+        Text = rich_progress_mod.Text
         # from rich.style import Style
 
         current = _get_current_rich_manager()
@@ -662,10 +709,10 @@ class _RichProgIterManager(BaseProgIterManager):
         else:
             self._is_main_manager = True
 
-            class ProgressRateColumn(ProgressColumn):
+            class ProgressRateColumn(ProgressColumnBase):
                 """Renders human readable transfer speed."""
 
-                def render(self, task) -> Text:
+                def render(self, task: Any) -> Any:
                     """Show progress speed speed."""
                     _iters_per_second = task.finished_speed or task.speed
                     if _iters_per_second is not None:
@@ -699,14 +746,14 @@ class _RichProgIterManager(BaseProgIterManager):
             )
             self.live_context = Live(self.progress_group)
 
-    def update_info(self, text):
+    def update_info(self, text: Any) -> None:
         if self.enabled:
             self._ensure_attached()
             if not self._is_main_manager:
                 current = _get_current_rich_manager()
                 if current is not None and current is not self:
                     return current.update_info(text)
-            from rich.panel import Panel
+            Panel = __import__('rich.panel', fromlist=['']).Panel
             if self.info_panel is None:
                 self.info_panel = Panel(text)
                 self.progress_group.renderables.insert(0, self.info_panel)
@@ -714,7 +761,7 @@ class _RichProgIterManager(BaseProgIterManager):
                 self.info_panel.renderable = text
         return None
 
-    def start(self):
+    def start(self) -> Any:
         if self.enabled and not self._active:
             self._ensure_attached()
             if self._is_main_manager:
@@ -724,7 +771,7 @@ class _RichProgIterManager(BaseProgIterManager):
             self._active = True
         return self
 
-    def stop(self, **kw):
+    def stop(self, **kw: Any) -> Any:
         ret = None
         if self.enabled and self._active:
             if not kw:
@@ -745,9 +792,14 @@ class _ProgIterManager(BaseProgIterManager):
     progiter specific backend
     """
 
+    enabled: bool
+    default_progkw: dict[str, Any]
+    prog_iters: list[ManagedProgIter]
+
+
     _is_main_manager = False
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self.enabled = kwargs.get('enabled', True)
         # Default arguments for new progiters
         self.default_progkw = {
@@ -757,11 +809,12 @@ class _ProgIterManager(BaseProgIterManager):
         self.prog_iters = []
         self._active = False
 
-    def _deregister_progiter(self, prog):
+    def _deregister_progiter(self, prog: Any) -> None:
         self.prog_iters = [p for p in self.prog_iters if p is not prog and not p.finished]
 
-    def progiter(self, iterable=None, total=None, desc=None, transient=False,
-                 spinner=False, verbose='auto', **kw):
+    def progiter(self, iterable: Iterable[Any] | None = None, total: int | None = None,
+                 desc: Any | None = None, transient: bool = False,
+                 spinner: bool = False, verbose: Any = 'auto', **kw: Any) -> Any:
         progkw = _normalize_progkw(self.default_progkw, verbose, kw)
         self.prog_iters = [p for p in self.prog_iters if not p.finished]
         if True:
@@ -777,7 +830,7 @@ class _ProgIterManager(BaseProgIterManager):
         self.prog_iters.append(prog)
         return prog
 
-    def update_info(self, text):
+    def update_info(self, text: Any) -> None:
         if self.enabled:
             self.prog_iters = [p for p in self.prog_iters if not p.finished]
             if len(self.prog_iters) == 0:
@@ -942,7 +995,13 @@ class ProgressManager(BaseProgIterManager):
 
     """
 
-    def __init__(self, backend='auto', **kwargs):
+    backend: Any
+    backend_key: str
+    requested_backend: str
+    auto_policy: str
+
+
+    def __init__(self, backend: str = 'auto', **kwargs: Any) -> None:
         LIVE_PROGRESS_MANAGERS[id(self)] = self
         auto_policy = kwargs.pop('auto_policy', 'auto')
         enabled = kwargs.get('enabled', True)
@@ -976,25 +1035,25 @@ class ProgressManager(BaseProgIterManager):
         self.requested_backend = requested_backend
         self.auto_policy = auto_policy
 
-    def progiter(self, *args, **kw):
+    def progiter(self, *args: Any, **kw: Any) -> Any:
         return self.backend.progiter(*args, **kw)
 
-    def update_info(self, text):
+    def update_info(self, text: Any) -> None:
         return self.backend.update_info(text)
 
-    def start(self):
+    def start(self) -> Any:
         self.backend.start()
         return self
 
-    def stop(self, *args, **kwargs):
+    def stop(self, *args: Any, **kwargs: Any) -> Any:
         return self.backend.stop(*args, **kwargs)
 
     @property
-    def _is_main_manager(self):
-        return getattr(self.backend, '_is_main_manager', False)
+    def _is_main_manager(self) -> bool:
+        return bool(getattr(self.backend, '_is_main_manager', False))
 
     @classmethod
-    def stopall(cls, backend=None, raise_errors=False):
+    def stopall(cls, backend: str | None = None, raise_errors: bool = False) -> list[Exception]:
         """
         Stop all live progress managers.
 
@@ -1011,7 +1070,7 @@ class ProgressManager(BaseProgIterManager):
             >>> errors = manager.ProgressManager.stopall()
             >>> assert isinstance(errors, list)
         """
-        errors = []
+        errors: list[Exception] = []
         for pman in reversed(list(LIVE_PROGRESS_MANAGERS.values())):
             if backend is not None and getattr(pman, 'backend_key', None) != backend:
                 continue
@@ -1036,26 +1095,33 @@ class _NullProgIterManager(BaseProgIterManager):
         >>> assert pman.update_info('ignored') is None
     """
 
+    enabled: bool
+    default_progkw: dict[str, Any]
+    prog_iters: list[Any]
+    _is_main_manager: Any
+
+
     enabled = False
     _is_main_manager = False
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self.default_progkw = kwargs.copy()
         self.prog_iters = []
         self._active = False
 
-    def progiter(self, iterable=None, total=None, desc=None, transient=False,
-                 spinner=False, verbose='auto', **kw):
+    def progiter(self, iterable: Iterable[Any] | None = None, total: int | None = None,
+                 desc: Any | None = None, transient: bool = False,
+                 spinner: bool = False, verbose: Any = 'auto', **kw: Any) -> Any:
         progkw = _normalize_progkw(self.default_progkw, verbose, kw)
         prog = _NullProgIter(
             iterable=iterable, total=total, desc=desc, transient=transient,
             spinner=spinner, manager=self, **progkw)
         return prog
 
-    def update_info(self, text):
+    def update_info(self, text: Any) -> None:
         return None
 
-    def _deregister_progiter(self, prog):
+    def _deregister_progiter(self, prog: Any) -> None:
         return None
 
 
@@ -1071,11 +1137,26 @@ class _NullProgIter:
         >>> assert prog.update_info('ignored') is None
     """
 
-    def __init__(self, iterable=None, desc=None, total=None, initial=0,
-                 transient=False, manager=None, spinner=False, **kwargs):
+    iterable: Any
+    desc: Any | None
+    total: int | None
+    initial: int
+    transient: bool
+    manager: Any | None
+    spinner: bool
+    enabled: bool
+    started: bool
+    finished: bool
+    extra: Any | None
+
+
+    def __init__(self, iterable: Any = None, desc: Any | None = None,
+                 total: int | None = None, initial: int = 0,
+                 transient: bool = False, manager: Any | None = None,
+                 spinner: bool = False, **kwargs: Any) -> None:
         self.iterable = () if iterable is None else iterable
         self.desc = desc
-        if total is None:
+        if total is None and iterable is not None:
             try:
                 total = len(iterable)
             except Exception:
@@ -1091,7 +1172,7 @@ class _NullProgIter:
         self.finished = False
         self.extra = None
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         self.begin()
         try:
             for item in self.iterable:
@@ -1099,36 +1180,36 @@ class _NullProgIter:
         finally:
             self.end()
 
-    def begin(self):
+    def begin(self) -> Any:
         self.started = True
         return self
 
     start = begin
 
-    def end(self):
+    def end(self) -> Any:
         self.finished = True
         return self
 
     stop = end
 
-    def update(self, n=1):
+    def update(self, n: int = 1) -> None:
         self.begin()
         self._completed += n
         return None
 
     step = update
 
-    def remove(self):
+    def remove(self) -> None:
         self.finished = True
         return None
 
-    def update_info(self, text):
+    def update_info(self, text: Any) -> None:
         return None
 
-    def ensure_newline(self):
+    def ensure_newline(self) -> None:
         ...
 
-    def set_postfix_str(self, text='', refresh=True):
+    def set_postfix_str(self, text: str = '', refresh: bool = True) -> None:
         self.extra = text
         return None
 
