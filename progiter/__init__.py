@@ -60,7 +60,7 @@ __autogen__ = """
 mkinit ~/code/progiter/progiter/__init__.py -w
 """
 
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 from progiter import manager
 from progiter import progiter
 

@@ -4,6 +4,16 @@ We are currently working on porting this changelog to the specifications in
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Version: 2.1.0] - 
+
+### Added
+* More TQDM compatibility on ProgIter.
+
+### Removed
+* Drop support for Python 3.6 and 3.7
+
+### Fixed
+* RichProgressManager now respects enabled=False and verbose=0
 
 ## [Version: 2.0.0] - Released 2023-06-11
 

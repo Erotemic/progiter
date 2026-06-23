@@ -2,6 +2,7 @@ progiter.progiter module
 ========================
 
 .. automodule:: progiter.progiter
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   :private-members:
