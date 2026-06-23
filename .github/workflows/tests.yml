@@ -230,7 +230,7 @@ jobs:
           os: ubuntu-latest
           arch: auto
           use-lockfile: 'false'
-        - python-version: pypy-3.9
+        - python-version: pypy-3.11
           install-extras: tests,optional
           os: ubuntu-latest
           arch: auto
@@ -260,7 +260,7 @@ jobs:
           os: macOS-latest
           arch: auto
           use-lockfile: 'false'
-        - python-version: pypy-3.9
+        - python-version: pypy-3.11
           install-extras: tests,optional
           os: macOS-latest
           arch: auto
@@ -290,7 +290,7 @@ jobs:
           os: windows-latest
           arch: auto
           use-lockfile: 'false'
-        - python-version: pypy-3.9
+        - python-version: pypy-3.11
           install-extras: tests,optional
           os: windows-latest
           arch: auto
